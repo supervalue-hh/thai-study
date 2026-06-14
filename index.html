@@ -603,6 +603,13 @@
   </div>
 
   <button class="btn-start" onclick="goStudy()" style="margin-top:4px">📇 学習を始める →</button>
+
+  <div style="margin-top:24px;border-top:1px solid var(--gray-mid);padding-top:16px">
+    <button onclick="confirmReset()"
+      style="width:100%;padding:13px;border:1px solid var(--gray-mid);background:var(--white);color:var(--gray-dark);font-size:0.85rem;font-weight:bold;cursor:pointer;letter-spacing:0.05em;">
+      🔄 学習データをリセット
+    </button>
+  </div>
 </div>
 
 <!-- FLASHCARD SCREEN -->
@@ -2123,6 +2130,21 @@ function renderHome() {
     const b = document.getElementById(`goal-btn-${n}`);
     if (b) b.classList.toggle('selected', n === dailyGoalMinutes);
   });
+}
+
+function confirmReset() {
+  if (!confirm('学習データをリセットしますか？\n\n・学習時間\n・覚えた単語\n・復習リスト\n\nこの操作は元に戻せません。')) return;
+  if (!confirm('本当にリセットしますか？')) return;
+  localStorage.removeItem('thai_study_time');
+  localStorage.removeItem('thai_learned');
+  localStorage.removeItem('thai_bookmarks');
+  learnedWords = new Set();
+  bookmarks = new Set();
+  sessionElapsed = 0;
+  renderHome();
+  renderCats();
+  updateNavBadge();
+  alert('リセットしました。');
 }
 
 function goStudy() {
