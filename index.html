@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>タイ語学習アプリ</title>
+<style>
+  :root {
+    --red: #FF0000;
+    --black: #111111;
+    --white: #FFFFFF;
+    --gray-light: #F5F5F5;
+    --gray-mid: #CCCCCC;
+    --gray-dark: #666666;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; background: var(--white); color: var(--black); min-height: 100vh; }
+
+  header {
+    background: var(--red);
+    color: var(--white);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.1em; }
+  header span { font-size: 1.4rem; }
+
+  nav {
+    display: flex;
+    background: var(--white);
+    border-bottom: 1px solid var(--black);
+  }
+  nav button {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    background: none;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    color: var(--gray-dark);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  nav button.active { color: var(--black); border-bottom-color: var(--black); }
+  nav button:hover { color: var(--black); background: var(--gray-light); }
+
+  .screen { display: none; padding: 24px 16px; max-width: 600px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .cat-btn {
+    padding: 12px 8px;
+    border: 1px solid var(--gray-mid);
+    border-radius: 0;
+    background: var(--white);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+    text-align: center;
+    transition: all 0.15s;
+    color: var(--black);
+  }
+  .cat-btn.selected { background: var(--black); color: var(--white); border-color: var(--black); }
+  .cat-btn:hover { border-color: var(--black); }
+
+  /* Flashcard */
+  .card-container { perspective: 1000px; margin: 16px 0; }
+  .card {
+    width: 100%; height: 220px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.45s;
+    cursor: pointer;
+  }
+  .card.flipped { transform: rotateY(180deg); }
+  .card-front, .card-back {
+    position: absolute;
+    width: 100%; height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border: 1px solid var(--black);
+  }
+  .card-front { background: var(--gray-light); }
+  .card-back { background: var(--white); transform: rotateY(180deg); }
+
+  .thai-text { font-size: 3rem; margin-bottom: 4px; color: var(--black); }
+  .romanize { font-size: 0.9rem; color: var(--gray-dark); }
+  .katakana { font-size: 1rem; color: var(--red); font-weight: bold; margin-top: 2px; }
+  .meaning { font-size: 1.5rem; font-weight: bold; color: var(--black); }
+  .example-block {
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid var(--gray-mid);
+    width: 100%; text-align: center;
+  }
+  .example-label { font-size: 0.68rem; color: var(--gray-dark); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .example-thai { font-size: 1.1rem; color: var(--black); margin-bottom: 2px; }
+  .example-roman { font-size: 0.8rem; color: var(--gray-dark); }
+  .tap-hint { font-size: 0.75rem; color: var(--gray-dark); margin-top: 10px; letter-spacing: 0.05em; }
+
+  .speak-btn {
+    background: none;
+    border: 1px solid var(--gray-mid);
+    border-radius: 0;
+    width: 40px; height: 40px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    margin: 6px auto 0;
+  }
+  .speak-btn:hover { background: var(--gray-light); border-color: var(--black); }
+  .speak-btn.speaking { background: var(--black); border-color: var(--black); animation: pulse 0.8s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .no-voice-msg { font-size: 0.75rem; color: var(--red); text-align: center; margin-top: 4px; }
+
+  .card-controls {
+    display: flex; gap: 8px; justify-content: center;
+    margin-top: 12px; flex-wrap: wrap;
+  }
+  .card-controls button {
+    padding: 10px 24px;
+    border: 1px solid var(--black);
+    border-radius: 0;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-prev { background: var(--white); color: var(--black); }
+  .btn-next { background: var(--black); color: var(--white); }
+  .btn-prev:hover { background: var(--gray-light); }
+  .btn-next:hover { background: #333; }
+
+  .judge-controls { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .btn-known {
+    flex: 1; max-width: 160px; padding: 12px;
+    border: 1px solid var(--black); border-radius: 0;
+    background: var(--white); color: var(--black);
+    font-size: 0.9rem; font-weight: bold; letter-spacing: 0.03em;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-unknown {
+    flex: 1; max-width: 160px; padding: 12px;
+    border: 1px solid var(--red); border-radius: 0;
+    background: var(--white); color: var(--red);
+    font-size: 0.9rem; font-weight: bold; letter-spacing: 0.03em;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-known:hover { background: var(--black); color: var(--white); }
+  .btn-unknown:hover { background: var(--red); color: var(--white); }
+
+  .card-meta {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+  }
+  .bookmark-btn {
+    background: none; border: none;
+    font-size: 1.3rem; cursor: pointer;
+    opacity: 0.3; transition: all 0.15s; padding: 2px 6px;
+  }
+  .bookmark-btn.active { opacity: 1; }
+  .bookmark-btn:hover { opacity: 0.7; }
+
+  .flash-result {
+    background: var(--white); border: 1px solid var(--black);
+    padding: 32px 20px; text-align: center;
+  }
+  .flash-result-score { font-size: 2.5rem; font-weight: bold; color: var(--black); margin: 10px 0; }
+  .flash-result-bar { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+  .fr-known { background: var(--white); color: var(--black); border: 1px solid var(--black); padding: 8px 20px; font-weight: bold; font-size: 0.85rem; }
+  .fr-unknown { background: var(--white); color: var(--red); border: 1px solid var(--red); padding: 8px 20px; font-weight: bold; font-size: 0.85rem; }
+  .flash-result-msg { color: var(--gray-dark); margin: 8px 0 20px; font-size: 0.9rem; }
+  .btn-retry-flash {
+    padding: 12px 28px; border: 1px solid var(--black); border-radius: 0;
+    background: var(--black); color: var(--white); font-size: 0.9rem; font-weight: bold;
+    cursor: pointer; margin: 4px; letter-spacing: 0.05em;
+  }
+  .btn-review-flash {
+    padding: 12px 28px; border: 1px solid var(--red); border-radius: 0;
+    background: var(--red); color: var(--white); font-size: 0.9rem; font-weight: bold;
+    cursor: pointer; margin: 4px; letter-spacing: 0.05em;
+  }
+
+  .review-badge {
+    display: inline-block; background: var(--red); color: var(--white);
+    border-radius: 0; font-size: 0.7rem; font-weight: bold;
+    padding: 1px 6px; margin-left: 4px; vertical-align: middle;
+  }
+
+  .progress-bar-wrap {
+    background: var(--gray-light);
+    height: 3px;
+    margin: 12px 0;
+  }
+  .progress-bar { height: 100%; background: var(--black); transition: width 0.3s; }
+  .progress-text { text-align: center; font-size: 0.78rem; color: var(--gray-dark); margin-bottom: 4px; letter-spacing: 0.05em; }
+
+  /* Quiz */
+  .quiz-question {
+    background: var(--gray-light);
+    border: 1px solid var(--black);
+    padding: 28px 20px; text-align: center; margin-bottom: 16px;
+  }
+  .quiz-thai { font-size: 2.8rem; margin-bottom: 6px; color: var(--black); }
+  .quiz-romanize { font-size: 0.9rem; color: var(--gray-dark); }
+  .quiz-label { font-size: 0.75rem; color: var(--gray-dark); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .options-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 16px;
+  }
+  .option-btn {
+    padding: 16px 12px;
+    border: 1px solid var(--gray-mid);
+    border-radius: 0;
+    background: var(--white);
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    color: var(--black);
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--black); background: var(--gray-light); }
+  .option-btn.correct { background: var(--black); border-color: var(--black); color: var(--white); }
+  .option-btn.wrong { background: var(--white); border-color: var(--red); color: var(--red); }
+  .option-btn:disabled { cursor: default; }
+
+  .feedback {
+    text-align: center; padding: 12px; margin-bottom: 16px;
+    font-weight: bold; font-size: 0.9rem; letter-spacing: 0.05em;
+    border: 1px solid;
+  }
+  .feedback.correct { background: var(--black); color: var(--white); border-color: var(--black); }
+  .feedback.wrong { background: var(--white); color: var(--red); border-color: var(--red); }
+
+  .quiz-score {
+    display: flex; justify-content: space-around;
+    background: var(--gray-light); border: 1px solid var(--gray-mid);
+    padding: 16px; margin-bottom: 16px;
+  }
+  .score-item { text-align: center; }
+  .score-num { font-size: 1.6rem; font-weight: bold; color: var(--black); }
+  .score-label { font-size: 0.72rem; color: var(--gray-dark); letter-spacing: 0.08em; margin-top: 2px; }
+
+  .btn-start, .btn-next-q {
+    display: block; width: 100%; padding: 15px;
+    border: none; border-radius: 0;
+    background: var(--black); color: var(--white);
+    font-size: 0.9rem; font-weight: bold;
+    letter-spacing: 0.1em; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-start:hover, .btn-next-q:hover { background: #333; }
+
+  .result-box {
+    background: var(--white); border: 1px solid var(--black);
+    padding: 36px 20px; text-align: center;
+  }
+  .result-emoji { font-size: 2.5rem; margin-bottom: 12px; }
+  .result-title { font-size: 1rem; font-weight: bold; letter-spacing: 0.1em; margin-bottom: 8px; color: var(--gray-dark); }
+  .result-score { font-size: 2.8rem; font-weight: bold; color: var(--black); margin: 12px 0; }
+  .result-msg { color: var(--gray-dark); margin-bottom: 24px; font-size: 0.9rem; }
+  .btn-retry {
+    padding: 13px 36px;
+    border: 1px solid var(--black);
+    border-radius: 0;
+    background: var(--black);
+    color: var(--white);
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  .btn-retry:hover { background: #333; }
+
+  section h2 {
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+    color: var(--gray-dark);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🇹🇭</span>
+  <h1>タイ語学習アプリ</h1>
+</header>
+
+<nav>
+  <button class="active" onclick="showScreen('flash')">📇 フラッシュカード</button>
+  <button onclick="showScreen('quiz')">📝 クイズ</button>
+</nav>
+
+<!-- FLASHCARD SCREEN -->
+<div id="flash" class="screen active">
+  <section>
+    <h2>カテゴリを選ぶ</h2>
+    <div class="category-grid" id="flash-cats"></div>
+  </section>
+
+  <div class="card-meta">
+    <div class="progress-text" id="flash-progress"></div>
+    <button class="bookmark-btn" id="bookmark-btn" onclick="toggleBookmark()" title="復習リストに追加">🔖</button>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="flash-bar"></div></div>
+
+  <div class="card-container">
+    <div class="card" id="flash-card" onclick="flipCard()">
+      <div class="card-front">
+        <div class="thai-text" id="card-thai"></div>
+        <div class="katakana" id="card-kana"></div>
+        <div class="romanize" id="card-roman"></div>
+        <button class="speak-btn" id="flash-speak-btn" onclick="event.stopPropagation(); speakThai(document.getElementById('card-thai').textContent, 'flash-speak-btn')">🔊</button>
+        <div class="tap-hint">タップして日本語を見る</div>
+      </div>
+      <div class="card-back">
+        <div class="meaning" id="card-meaning"></div>
+        <div class="example-block" id="card-example-block" style="display:none">
+          <div class="example-label">例文</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+            <div class="example-thai" id="card-example"></div>
+            <button class="speak-btn" id="ex-speak-btn" style="width:34px;height:34px;font-size:1rem;margin:0;" onclick="event.stopPropagation(); speakThai(document.getElementById('card-example').textContent, 'ex-speak-btn')">🔊</button>
+          </div>
+          <div class="example-roman" id="card-example-roman"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="judge-controls" id="judge-controls">
+    <button class="btn-unknown" onclick="judgeCard(false)">✗ わからなかった</button>
+    <button class="btn-known" onclick="judgeCard(true)">✓ わかった</button>
+  </div>
+
+  <div class="card-controls">
+    <button class="btn-prev" onclick="prevCard()">◀ 前へ</button>
+    <button class="btn-next" onclick="nextCard()">次へ ▶</button>
+  </div>
+
+  <div id="flash-result" style="display:none" class="flash-result">
+    <div style="font-size:2.5rem" id="fr-emoji"></div>
+    <div style="font-size:1.1rem;font-weight:bold;margin-top:8px">セッション終了！</div>
+    <div class="flash-result-score" id="fr-score"></div>
+    <div class="flash-result-bar">
+      <div class="fr-known" id="fr-known-count"></div>
+      <div class="fr-unknown" id="fr-unknown-count"></div>
+    </div>
+    <div class="flash-result-msg" id="fr-msg"></div>
+    <div>
+      <button class="btn-retry-flash" onclick="retryFlash()">🔄 もう一度</button>
+      <button class="btn-review-flash" id="fr-review-btn" onclick="startReviewMode()" style="display:none">📌 要復習のみ練習</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div id="quiz" class="screen">
+  <section>
+    <h2>カテゴリを選ぶ</h2>
+    <div class="category-grid" id="quiz-cats"></div>
+  </section>
+
+  <div id="quiz-start-area">
+    <div class="quiz-score">
+      <div class="score-item"><div class="score-num" id="q-correct">0</div><div class="score-label">正解</div></div>
+      <div class="score-item"><div class="score-num" id="q-wrong">0</div><div class="score-label">不正解</div></div>
+      <div class="score-item"><div class="score-num" id="q-total">0</div><div class="score-label">問題数</div></div>
+    </div>
+    <button class="btn-start" onclick="startQuiz()">クイズを始める</button>
+  </div>
+
+  <div id="quiz-area" style="display:none">
+    <div class="progress-text" id="quiz-progress"></div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="quiz-bar"></div></div>
+
+    <div class="quiz-question">
+      <div class="quiz-label">次の単語の意味は？</div>
+      <div class="quiz-thai" id="q-thai"></div>
+      <button class="speak-btn" id="quiz-speak-btn" onclick="speakThai(document.getElementById('q-thai').textContent, 'quiz-speak-btn')">🔊</button>
+      <div class="katakana" id="q-kana"></div>
+      <div class="quiz-romanize" id="q-roman"></div>
+    </div>
+
+    <div class="options-grid" id="q-options"></div>
+    <div class="feedback" id="q-feedback" style="display:none"></div>
+    <button class="btn-next-q" id="q-next-btn" style="display:none" onclick="nextQuestion()">次の問題へ</button>
+  </div>
+
+  <div id="quiz-result" style="display:none">
+    <div class="result-box">
+      <div class="result-emoji" id="res-emoji"></div>
+      <div class="result-title">クイズ終了！</div>
+      <div class="result-score" id="res-score"></div>
+      <div class="result-msg" id="res-msg"></div>
+      <button class="btn-retry" onclick="resetQuiz()">もう一度チャレンジ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORDS = {
+  "あいさつ": [
+    { thai:"สวัสดี", kana:"サワディー", roman:"sawatdii", meaning:"こんにちは／こんばんは", ex:"สวัสดีครับ คุณสบายดีไหม", exRoman:"サワディー クラップ クン サバーイ ディー マイ（こんにちは、元気ですか？）" },
+    { thai:"ขอบคุณ", kana:"コープクン", roman:"khɔ̀ɔp khun", meaning:"ありがとう", ex:"ขอบคุณมากครับ", exRoman:"コープクン マーク クラップ（どうもありがとうございます）" },
+    { thai:"ใช่", kana:"チャイ", roman:"châi", meaning:"はい・そうです", ex:"ใช่ครับ นั่นถูกต้อง", exRoman:"チャイ クラップ ナン トゥークトーン（はい、そのとおりです）" },
+    { thai:"ไม่ใช่", kana:"マイ チャイ", roman:"mâi châi", meaning:"いいえ・違います", ex:"ไม่ใช่ค่ะ ฉันไม่รู้จัก", exRoman:"マイ チャイ カ チャン マイ ルーチャック（いいえ、知りません）" },
+    { thai:"ลาก่อน", kana:"ラーゴーン", roman:"laa kɔ̀ɔn", meaning:"さようなら", ex:"ลาก่อนนะครับ พรุ่งนี้เจอกัน", exRoman:"ラーゴーン ナ クラップ プルン ニー チョー ガン（さようなら、また明日）" },
+    { thai:"ขอโทษ", kana:"コートート", roman:"khɔ̌ɔ thôot", meaning:"ごめんなさい", ex:"ขอโทษนะครับ ผมมาสาย", exRoman:"コートート ナ クラップ ポム マー サーイ（遅れてごめんなさい）" },
+    { thai:"ไม่เป็นไร", kana:"マイ ペン ライ", roman:"mâi pen rai", meaning:"大丈夫・気にしないで", ex:"ไม่เป็นไรค่ะ ไม่ต้องกังวล", exRoman:"マイ ペン ライ カ マイ トーン ガンウォン（大丈夫、心配しないで）" },
+    { thai:"สบายดีไหม", kana:"サバーイ ディー マイ", roman:"sabai dii mǎi", meaning:"元気ですか？", ex:"สบายดีไหมครับ ไม่ได้เจอกันนาน", exRoman:"サバーイ ディー マイ クラップ マイ ダイ チョー ガン ナーン（元気？久しぶりだね）" },
+    { thai:"สบายดี", kana:"サバーイ ディー", roman:"sabai dii", meaning:"元気です", ex:"สบายดีค่ะ ขอบคุณที่ถาม", exRoman:"サバーイ ディー カ コープクン ティー タームム（元気です、聞いてくれてありがとう）" },
+    { thai:"ยินดีที่ได้รู้จัก", kana:"インディー ティー ダイ ルーチャック", roman:"yindii thîi dâi rúucàk", meaning:"はじめまして", ex:"ยินดีที่ได้รู้จักครับ ผมชื่อเคนจิ", exRoman:"インディー ティー ダイ ルーチャック クラップ ポム チュー ケンジ（はじめまして、ケンジといいます）" },
+    { thai:"แล้วเจอกัน", kana:"レーオ チョー ガン", roman:"lɛ́ɛo cəə kan", meaning:"またね", ex:"แล้วเจอกันพรุ่งนี้นะ", exRoman:"レーオ チョー ガン プルン ニー ナ（また明日ね）" },
+    { thai:"ขอบใจ", kana:"コープチャイ", roman:"khɔ̀ɔp cai", meaning:"ありがとう（カジュアル）", ex:"ขอบใจนะ ช่วยได้มากเลย", exRoman:"コープチャイ ナ チュアイ ダイ マーク ルーイ（ありがとう、すごく助かった）" },
+    { thai:"โชคดี", kana:"チョーク ディー", roman:"chôok dii", meaning:"頑張って・幸運を", ex:"โชคดีนะ สอบพรุ่งนี้", exRoman:"チョーク ディー ナ ソープ プルン ニー（頑張って、明日試験だね）" },
+    { thai:"ขอให้โชคดี", kana:"コー ハイ チョーク ディー", roman:"khɔ̌ɔ hâi chôok dii", meaning:"ご幸運を", ex:"ขอให้โชคดีในการแข่งขัน", exRoman:"コー ハイ チョーク ディー ナイ ガーン ケーン カン（試合でご幸運を）" },
+    { thai:"ดีใจที่ได้เจอ", kana:"ディーチャイ ティー ダイ ジュー", roman:"dii cai thîi dâi cəə", meaning:"お会いできて嬉しい", ex:"ดีใจที่ได้เจอคุณอีกครั้ง", exRoman:"ディーチャイ ティー ダイ ジュー クン イーク クラン（またお会いできて嬉しいです）" },
+  ],
+  "数字": [
+    { thai:"หนึ่ง", kana:"ヌン", roman:"nʉ̀ng", meaning:"1（いち）", ex:"ขอหนึ่งอันครับ", exRoman:"コー ヌン アン クラップ（一つください）" },
+    { thai:"สอง", kana:"ソーン", roman:"sɔ̌ɔng", meaning:"2（に）", ex:"ขอสองแก้วครับ", exRoman:"コー ソーン ゲーオ クラップ（グラスを2つください）" },
+    { thai:"สาม", kana:"サーム", roman:"sǎam", meaning:"3（さん）", ex:"มีสามคนครับ", exRoman:"ミー サーム コン クラップ（3人います）" },
+    { thai:"สี่", kana:"スィー", roman:"sìi", meaning:"4（し）", ex:"นัดสี่โมงครับ", exRoman:"ナット スィー モーン クラップ（4時に待ち合わせです）" },
+    { thai:"ห้า", kana:"ハー", roman:"hâa", meaning:"5（ご）", ex:"ห้านาทีนะครับ", exRoman:"ハー ナーティー ナ クラップ（5分ですよ）" },
+    { thai:"หก", kana:"ホック", roman:"hòk", meaning:"6（ろく）", ex:"หกโมงเช้า", exRoman:"ホック モーン チャオ（朝6時）" },
+    { thai:"เจ็ด", kana:"チェット", roman:"cèt", meaning:"7（なな）", ex:"เจ็ดวันในหนึ่งสัปดาห์", exRoman:"チェット ワン ナイ ヌン サップダー（一週間は7日）" },
+    { thai:"แปด", kana:"ペート", roman:"pɛ̀ɛt", meaning:"8（はち）", ex:"แปดโมงเช้าครับ", exRoman:"ペート モーン チャオ クラップ（朝8時です）" },
+    { thai:"เก้า", kana:"カーオ", roman:"kâao", meaning:"9（きゅう）", ex:"เก้าร้อยบาทครับ", exRoman:"カーオ ローイ バーツ クラップ（900バーツです）" },
+    { thai:"สิบ", kana:"スィップ", roman:"sìp", meaning:"10（じゅう）", ex:"สิบบาทครับ", exRoman:"スィップ バーツ クラップ（10バーツです）" },
+    { thai:"สิบเอ็ด", kana:"スィップ エット", roman:"sìp èt", meaning:"11（じゅういち）", ex:"สิบเอ็ดโมงครับ", exRoman:"スィップ エット モーン クラップ（11時です）" },
+    { thai:"สิบสอง", kana:"スィップ ソーン", roman:"sìp sɔ̌ɔng", meaning:"12（じゅうに）", ex:"สิบสองเดือนในหนึ่งปี", exRoman:"スィップ ソーン ドゥアン ナイ ヌン ピー（1年は12ヶ月）" },
+    { thai:"ยี่สิบ", kana:"イー スィップ", roman:"yîi sìp", meaning:"20（にじゅう）", ex:"ยี่สิบบาทครับ", exRoman:"イー スィップ バーツ クラップ（20バーツです）" },
+    { thai:"ร้อย", kana:"ローイ", roman:"rɔ́ɔi", meaning:"100（ひゃく）", ex:"ร้อยบาทครับ", exRoman:"ローイ バーツ クラップ（100バーツです）" },
+    { thai:"พัน", kana:"パン", roman:"phan", meaning:"1000（せん）", ex:"พันบาทครับ", exRoman:"パン バーツ クラップ（1000バーツです）" },
+    { thai:"หมื่น", kana:"ムーン", roman:"mʉ̀ʉn", meaning:"10000（いちまん）", ex:"หมื่นบาทต่อเดือน", exRoman:"ムーン バーツ トー ドゥアン（月1万バーツ）" },
+    { thai:"แสน", kana:"セーン", roman:"sɛ̌ɛn", meaning:"100000（じゅうまん）", ex:"แสนบาทต่อปี", exRoman:"セーン バーツ トー ピー（年10万バーツ）" },
+    { thai:"ล้าน", kana:"ラーン", roman:"láan", meaning:"100万（ひゃくまん）", ex:"ล้านบาทเลยนะ", exRoman:"ラーン バーツ ルーイ ナ（100万バーツもあるね）" },
+    { thai:"ศูนย์", kana:"スーン", roman:"sǔun", meaning:"0（ぜろ）", ex:"ศูนย์บาทครับ ฟรีเลย", exRoman:"スーン バーツ クラップ フリー ルーイ（0バーツ、無料です）" },
+    { thai:"ครึ่ง", kana:"クルン", roman:"khrʉ̂ng", meaning:"半分（はんぶん）", ex:"ขอครึ่งหนึ่งนะครับ", exRoman:"コー クルン ヌン ナ クラップ（半分ください）" },
+  ],
+  "食べ物・飲み物": [
+    { thai:"ข้าว", kana:"カーオ", roman:"khâao", meaning:"ご飯・米", ex:"ขอข้าวผัดหนึ่งจานครับ", exRoman:"コー カーオ パット ヌン チャーン クラップ（チャーハンを一皿ください）" },
+    { thai:"น้ำ", kana:"ナーム", roman:"náam", meaning:"水", ex:"ขอน้ำเปล่าหนึ่งแก้วครับ", exRoman:"コー ナーム プラーオ ヌン ゲーオ クラップ（お水を一杯ください）" },
+    { thai:"ก๋วยเตี๋ยว", kana:"グアイ ティアオ", roman:"kǔay tǐaw", meaning:"麺料理", ex:"ก๋วยเตี๋ยวน้ำอร่อยมากครับ", exRoman:"グアイ ティアオ ナーム アローイ マーク クラップ（スープ麺がとても美味しい）" },
+    { thai:"ผัดไทย", kana:"パット タイ", roman:"phàt thai", meaning:"パッタイ", ex:"ผัดไทยไม่ใส่ผักชีนะครับ", exRoman:"パット タイ マイ サイ パックチー ナ クラップ（パッタイはパクチーなしで）" },
+    { thai:"ต้มยำกุ้ง", kana:"トム ヤム クン", roman:"tôm yam kûng", meaning:"トムヤムクン", ex:"ต้มยำกุ้งเผ็ดมากไหมครับ", exRoman:"トム ヤム クン ペット マーク マイ クラップ（トムヤムクンはとても辛いですか？）" },
+    { thai:"อาหาร", kana:"アーハーン", roman:"aahǎan", meaning:"食べ物・料理", ex:"อาหารไทยอร่อยมากครับ", exRoman:"アーハーン タイ アローイ マーク クラップ（タイ料理はとても美味しい）" },
+    { thai:"อร่อย", kana:"アローイ", roman:"aròi", meaning:"おいしい", ex:"อร่อยมากเลยครับ", exRoman:"アローイ マーク ルーイ クラップ（本当に美味しい！）" },
+    { thai:"เผ็ด", kana:"ペット", roman:"phèt", meaning:"辛い", ex:"เผ็ดไปหน่อยครับ", exRoman:"ペット パイ ノーイ クラップ（少し辛すぎます）" },
+    { thai:"หวาน", kana:"ワーン", roman:"wǎan", meaning:"甘い", ex:"หวานเกินไปครับ", exRoman:"ワーン グーン パイ クラップ（甘すぎます）" },
+    { thai:"เปรี้ยว", kana:"プリアオ", roman:"prîaw", meaning:"酸っぱい", ex:"ส้มตำเปรี้ยวอร่อยครับ", exRoman:"ソムタム プリアオ アローイ クラップ（ソムタムは酸っぱくて美味しい）" },
+    { thai:"เค็ม", kana:"ケム", roman:"khem", meaning:"しょっぱい", ex:"เค็มนิดหน่อยครับ", exRoman:"ケム ニット ノーイ クラップ（少ししょっぱいです）" },
+    { thai:"ขม", kana:"コム", roman:"khǒm", meaning:"苦い", ex:"กาแฟขมไปครับ", exRoman:"ガーフェー コム パイ クラップ（コーヒーが苦すぎます）" },
+    { thai:"กาแฟ", kana:"ガーフェー", roman:"kaa fɛɛ", meaning:"コーヒー", ex:"ขอกาแฟร้อนหนึ่งแก้วครับ", exRoman:"コー ガーフェー ローン ヌン ゲーオ クラップ（ホットコーヒーを一杯ください）" },
+    { thai:"ชา", kana:"チャー", roman:"chaa", meaning:"お茶", ex:"ชาเย็นอร่อยมากครับ", exRoman:"チャー イェン アローイ マーク クラップ（アイスティーがとても美味しい）" },
+    { thai:"เบียร์", kana:"ビア", roman:"bia", meaning:"ビール", ex:"ขอเบียร์สิงห์หนึ่งขวดครับ", exRoman:"コー ビア スィン ヌン クアット クラップ（シンハービールを一本ください）" },
+    { thai:"น้ำผลไม้", kana:"ナーム ポンラマーイ", roman:"náam phǒn lamáai", meaning:"フルーツジュース", ex:"น้ำผลไม้สดสุขภาพดีครับ", exRoman:"ナーム ポンラマーイ ソット スックカパープ ディー クラップ（フレッシュジュースは体に良い）" },
+    { thai:"นม", kana:"ノム", roman:"nom", meaning:"牛乳", ex:"ดื่มนมทุกเช้าครับ", exRoman:"ドゥーム ノム トゥック チャオ クラップ（毎朝牛乳を飲みます）" },
+    { thai:"ไก่", kana:"ガイ", roman:"kài", meaning:"鶏肉・鶏", ex:"ข้าวมันไก่อร่อยมากครับ", exRoman:"カーオ マン ガイ アローイ マーク クラップ（カオマンガイがとても美味しい）" },
+    { thai:"หมู", kana:"ムー", roman:"mǔu", meaning:"豚肉・豚", ex:"หมูย่างอร่อยครับ", exRoman:"ムー ヤーン アローイ クラップ（焼き豚が美味しい）" },
+    { thai:"เนื้อ", kana:"ヌア", roman:"nʉ́a", meaning:"牛肉", ex:"เนื้อย่างสุกดีไหมครับ", exRoman:"ヌア ヤーン スック ディー マイ クラップ（牛肉はよく焼けていますか？）" },
+    { thai:"กุ้ง", kana:"グン", roman:"kûng", meaning:"エビ", ex:"กุ้งสดมากครับ", exRoman:"グン ソット マーク クラップ（エビがとても新鮮）" },
+    { thai:"ปลา", kana:"プラー", roman:"plaa", meaning:"魚", ex:"ปลาทอดอร่อยมากครับ", exRoman:"プラー トート アローイ マーク クラップ（揚げ魚がとても美味しい）" },
+    { thai:"ผัก", kana:"パック", roman:"phàk", meaning:"野菜", ex:"ขอเพิ่มผักหน่อยครับ", exRoman:"コー プーム パック ノーイ クラップ（野菜を増やしてください）" },
+    { thai:"ผลไม้", kana:"ポンラマーイ", roman:"phǒn lamáai", meaning:"果物", ex:"ผลไม้ไทยหวานอร่อยครับ", exRoman:"ポンラマーイ タイ ワーン アローイ クラップ（タイの果物は甘くて美味しい）" },
+    { thai:"มะม่วง", kana:"マムアン", roman:"mamûang", meaning:"マンゴー", ex:"มะม่วงสุกหวานมากครับ", exRoman:"マムアン スック ワーン マーク クラップ（熟したマンゴーはとても甘い）" },
+    { thai:"ทุเรียน", kana:"トゥリアン", roman:"thurian", meaning:"ドリアン", ex:"ทุเรียนกลิ่นแรงมากครับ", exRoman:"トゥリアン グリン レーン マーク クラップ（ドリアンはとても匂いが強い）" },
+    { thai:"กล้วย", kana:"グルアイ", roman:"klûay", meaning:"バナナ", ex:"กล้วยหอมอร่อยครับ", exRoman:"グルアイ ホム アローイ クラップ（バナナが美味しい）" },
+    { thai:"ข้าวมันไก่", kana:"カーオ マン ガイ", roman:"khâao man kài", meaning:"カオマンガイ", ex:"ข้าวมันไก่ร้านนี้อร่อยมากครับ", exRoman:"カーオ マン ガイ ラーン ニー アローイ マーク クラップ（この店のカオマンガイはとても美味しい）" },
+    { thai:"ส้มตำ", kana:"ソムタム", roman:"sôm tam", meaning:"ソムタム（パパイヤサラダ）", ex:"ส้มตำไม่เผ็ดได้ไหมครับ", exRoman:"ソムタム マイ ペット ダイ マイ クラップ（ソムタムを辛くなしにできますか？）" },
+    { thai:"แกงเขียวหวาน", kana:"ゲーン キアオ ワーン", roman:"kɛɛng khǐaw wǎan", meaning:"グリーンカレー", ex:"แกงเขียวหวานไก่อร่อยมากครับ", exRoman:"ゲーン キアオ ワーン ガイ アローイ マーク クラップ（チキングリーンカレーがとても美味しい）" },
+  ],
+  "基本フレーズ": [
+    { thai:"เท่าไหร่", kana:"タオライ", roman:"thâo rài", meaning:"いくらですか？", ex:"อันนี้เท่าไหร่ครับ", exRoman:"アン ニー タオライ クラップ（これはいくらですか？）" },
+    { thai:"ที่ไหน", kana:"ティーナイ", roman:"thîi nǎi", meaning:"どこ？", ex:"ห้องน้ำอยู่ที่ไหนครับ", exRoman:"ホーン ナーム ユー ティーナイ クラップ（トイレはどこですか？）" },
+    { thai:"อะไร", kana:"アライ", roman:"arai", meaning:"何？", ex:"นี่คืออะไรครับ", exRoman:"ニー クー アライ クラップ（これは何ですか？）" },
+    { thai:"ใคร", kana:"クライ", roman:"khrai", meaning:"誰？", ex:"คนนั้นคือใครครับ", exRoman:"コン ナン クー クライ クラップ（あの人は誰ですか？）" },
+    { thai:"เมื่อไหร่", kana:"ムアライ", roman:"mʉ̂a rài", meaning:"いつ？", ex:"จะไปเมื่อไหร่ครับ", exRoman:"チャ パイ ムアライ クラップ（いつ行きますか？）" },
+    { thai:"ทำไม", kana:"タンマイ", roman:"tham mai", meaning:"なぜ？", ex:"ทำไมมาสายครับ", exRoman:"タンマイ マー サーイ クラップ（なぜ遅れましたか？）" },
+    { thai:"ได้", kana:"ダイ", roman:"dâi", meaning:"できる・OK", ex:"ไปได้เลยครับ", exRoman:"パイ ダイ ルーイ クラップ（行っても大丈夫ですよ）" },
+    { thai:"ไม่ได้", kana:"マイ ダイ", roman:"mâi dâi", meaning:"できない", ex:"วันนี้ไปไม่ได้ครับ", exRoman:"ワン ニー パイ マイ ダイ クラップ（今日は行けません）" },
+    { thai:"ไม่รู้", kana:"マイ ルー", roman:"mâi rúu", meaning:"わからない", ex:"ไม่รู้ครับ ถามคนอื่นดีกว่า", exRoman:"マイ ルー クラップ タームム コン ウーン ディー クワー（わかりません、他の人に聞いた方がいい）" },
+    { thai:"ช่วยด้วย", kana:"チュアイ ドゥアイ", roman:"chûai dûai", meaning:"助けてください", ex:"ช่วยด้วยครับ หลงทาง", exRoman:"チュアイ ドゥアイ クラップ ロン ターン（助けてください、道に迷いました）" },
+    { thai:"พูดไทยไม่ได้", kana:"プート タイ マイ ダイ", roman:"phûut thai mâi dâi", meaning:"タイ語が話せません", ex:"ขอโทษครับ พูดไทยไม่ได้", exRoman:"コートート クラップ プート タイ マイ ダイ（すみません、タイ語が話せません）" },
+    { thai:"พูดช้าๆ หน่อยได้ไหม", kana:"プート チャーチャー ノーイ ダイ マイ", roman:"phûut cháa cháa nòi dâi mǎi", meaning:"ゆっくり話してもらえますか？", ex:"พูดช้าๆ หน่อยได้ไหมครับ ฟังไม่ทัน", exRoman:"プート チャーチャー ノーイ ダイ マイ クラップ ファン マイ タン（ゆっくり話してください、聞き取れません）" },
+    { thai:"ขอโทษ ไม่เข้าใจ", kana:"コートート マイ カオチャイ", roman:"khɔ̌ɔ thôot mâi khâo cai", meaning:"すみません、わかりません", ex:"ขอโทษครับ ไม่เข้าใจเลย", exRoman:"コートート クラップ マイ カオチャイ ルーイ（すみません、全然わかりません）" },
+    { thai:"นี่คืออะไร", kana:"ニー クー アライ", roman:"nîi khʉʉ arai", meaning:"これは何ですか？", ex:"นี่คืออะไรครับ กินได้ไหม", exRoman:"ニー クー アライ クラップ ギン ダイ マイ（これは何ですか？食べられますか？）" },
+    { thai:"อันนี้เท่าไหร่", kana:"アン ニー タオライ", roman:"an níi thâo rài", meaning:"これはいくらですか？", ex:"อันนี้เท่าไหร่ครับ ถูกไหม", exRoman:"アン ニー タオライ クラップ トゥーク マイ（これいくらですか？安いですか？）" },
+    { thai:"ขอลดราคาหน่อยได้ไหม", kana:"コー ロット ラーカー ノーイ ダイ マイ", roman:"khɔ̌ɔ lót raakhaa nòi dâi mǎi", meaning:"値引きしてもらえますか？", ex:"ขอลดราคาหน่อยได้ไหมครับ", exRoman:"コー ロット ラーカー ノーイ ダイ マイ クラップ（少し安くしてもらえますか？）" },
+    { thai:"ไปที่ไหน", kana:"パイ ティーナイ", roman:"pai thîi nǎi", meaning:"どこに行きますか？", ex:"วันนี้ไปที่ไหนครับ", exRoman:"ワン ニー パイ ティーナイ クラップ（今日どこに行きますか？）" },
+    { thai:"ขอเมนูหน่อย", kana:"コー メニュー ノーイ", roman:"khɔ̌ɔ meenuu nòi", meaning:"メニューをください", ex:"ขอเมนูหน่อยครับ ยังไม่ได้เลือก", exRoman:"コー メニュー ノーイ クラップ ヤン マイ ダイ ルアック（メニューをください、まだ選んでいません）" },
+    { thai:"เช็คบิลด้วย", kana:"チェック ビン ドゥアイ", roman:"chék bin dûai", meaning:"お会計をお願いします", ex:"เช็คบิลด้วยครับ แยกจ่ายได้ไหม", exRoman:"チェック ビン ドゥアイ クラップ イェーク チャーイ ダイ マイ（お会計を。割り勘できますか？）" },
+    { thai:"ห้องน้ำอยู่ที่ไหน", kana:"ホーン ナーム ユー ティーナイ", roman:"hɔ̂ng náam yùu thîi nǎi", meaning:"トイレはどこですか？", ex:"ห้องน้ำอยู่ที่ไหนครับ รีบมากเลย", exRoman:"ホーン ナーム ユー ティーナイ クラップ リープ マーク ルーイ（トイレはどこですか？急いでいます）" },
+  ],
+  "色・形容詞": [
+    { thai:"แดง", kana:"デーン", roman:"dɛɛng", meaning:"赤", ex:"เสื้อสีแดงสวยมากครับ", exRoman:"スア スィー デーン スアイ マーク クラップ（赤いシャツがとてもきれい）" },
+    { thai:"เขียว", kana:"キアオ", roman:"khǐaw", meaning:"緑", ex:"ต้นไม้สีเขียวสดใสครับ", exRoman:"トン マーイ スィー キアオ ソット サイ クラップ（木の緑が鮮やか）" },
+    { thai:"น้ำเงิน", kana:"ナーム グン", roman:"náam ngən", meaning:"青", ex:"ท้องฟ้าสีน้ำเงินสวยครับ", exRoman:"トーン ファー スィー ナームグン スアイ クラップ（空の青がきれい）" },
+    { thai:"ฟ้า", kana:"ファー", roman:"fáa", meaning:"水色・空色", ex:"ชอบสีฟ้าครับ สดใสดี", exRoman:"チョープ スィー ファー クラップ ソット サイ ディー（水色が好き、爽やかでいい）" },
+    { thai:"ขาว", kana:"カーオ", roman:"khǎao", meaning:"白", ex:"เสื้อสีขาวสะอาดดูดีครับ", exRoman:"スア スィー カーオ サアート ドゥー ディー クラップ（白いシャツは清潔感があっていい）" },
+    { thai:"ดำ", kana:"ダム", roman:"dam", meaning:"黒", ex:"รถสีดำดูหรูครับ", exRoman:"ロット スィー ダム ドゥー ル クラップ（黒い車は高級感がある）" },
+    { thai:"เหลือง", kana:"ルアン", roman:"lʉ̌ang", meaning:"黄色", ex:"กล้วยสีเหลืองสุกแล้วครับ", exRoman:"グルアイ スィー ルアン スック レーオ クラップ（バナナが黄色く熟れた）" },
+    { thai:"ส้ม", kana:"ソム", roman:"sôm", meaning:"オレンジ色", ex:"พระอาทิตย์ตกสีส้มสวยมากครับ", exRoman:"プラ アーティット トック スィー ソム スアイ マーク クラップ（夕日のオレンジ色がとてもきれい）" },
+    { thai:"ม่วง", kana:"ムアン", roman:"mûang", meaning:"紫", ex:"ดอกไม้สีม่วงสวยครับ", exRoman:"ドーク マーイ スィー ムアン スアイ クラップ（紫の花がきれい）" },
+    { thai:"ชมพู", kana:"チョムプー", roman:"chomphuu", meaning:"ピンク", ex:"ชอบสีชมพูมากครับ", exRoman:"チョープ スィー チョムプー マーク クラップ（ピンクがとても好き）" },
+    { thai:"น้ำตาล", kana:"ナームターン", roman:"náam taan", meaning:"茶色", ex:"หมาสีน้ำตาลน่ารักมากครับ", exRoman:"マー スィー ナームターン ナーラック マーク クラップ（茶色い犬がとても可愛い）" },
+    { thai:"เทา", kana:"タオ", roman:"thao", meaning:"グレー", ex:"เสื้อสีเทาใส่ได้ทุกวันครับ", exRoman:"スア スィー タオ サイ ダイ トゥック ワン クラップ（グレーのシャツは毎日着られる）" },
+    { thai:"ใหญ่", kana:"ヤイ", roman:"yài", meaning:"大きい", ex:"บ้านหลังนี้ใหญ่มากครับ", exRoman:"バーン ラン ニー ヤイ マーク クラップ（この家はとても大きい）" },
+    { thai:"เล็ก", kana:"レック", roman:"lék", meaning:"小さい", ex:"ห้องเล็กไปหน่อยครับ", exRoman:"ホーン レック パイ ノーイ クラップ（部屋が少し小さい）" },
+    { thai:"สวย", kana:"スアイ", roman:"sǔay", meaning:"きれい・美しい", ex:"วิวที่นี่สวยมากครับ", exRoman:"ウィウ ティー ニー スアイ マーク クラップ（ここの景色はとてもきれい）" },
+    { thai:"ดี", kana:"ディー", roman:"dii", meaning:"良い", ex:"อาหารดีมากครับ", exRoman:"アーハーン ディー マーク クラップ（料理がとても良い）" },
+    { thai:"ไม่ดี", kana:"マイ ディー", roman:"mâi dii", meaning:"悪い", ex:"อากาศไม่ดีวันนี้ครับ", exRoman:"アーガート マイ ディー ワン ニー クラップ（今日は天気が悪い）" },
+    { thai:"ร้อน", kana:"ローン", roman:"rɔ́ɔn", meaning:"暑い・熱い", ex:"เมืองไทยร้อนมากครับ", exRoman:"ムアン タイ ローン マーク クラップ（タイはとても暑い）" },
+    { thai:"เย็น", kana:"イェン", roman:"yen", meaning:"涼しい・冷たい", ex:"น้ำเย็นดื่มอร่อยครับ", exRoman:"ナーム イェン ドゥーム アローイ クラップ（冷たい水が飲んで美味しい）" },
+    { thai:"เร็ว", kana:"レオ", roman:"reo", meaning:"速い", ex:"รถไฟฟ้าเร็วมากครับ", exRoman:"ロット ファイ ファー レオ マーク クラップ（電車がとても速い）" },
+    { thai:"ช้า", kana:"チャー", roman:"cháa", meaning:"遅い", ex:"รถติดทำให้ช้าครับ", exRoman:"ロット ティット タムハイ チャー クラップ（渋滞で遅くなった）" },
+    { thai:"ถูก", kana:"トゥーク", roman:"thùuk", meaning:"安い・正しい", ex:"ราคาถูกมากเลยครับ", exRoman:"ラーカー トゥーク マーク ルーイ クラップ（値段がとても安い）" },
+    { thai:"แพง", kana:"ペーン", roman:"phɛɛng", meaning:"高い（値段）", ex:"แพงไปหน่อยครับ ลดได้ไหม", exRoman:"ペーン パイ ノーイ クラップ ロット ダイ マイ（少し高いです、値引きできますか？）" },
+    { thai:"ใหม่", kana:"マイ", roman:"mài", meaning:"新しい", ex:"โทรศัพท์ใหม่ดูดีมากครับ", exRoman:"トーラサップ マイ ドゥー ディー マーク クラップ（新しいスマホはとても良さそう）" },
+    { thai:"เก่า", kana:"カオ", roman:"kào", meaning:"古い", ex:"บ้านเก่าแต่สวยครับ", exRoman:"バーン カオ テー スアイ クラップ（古い家だけどきれい）" },
+    { thai:"สูง", kana:"スーン", roman:"sǔung", meaning:"高い（背・高さ）", ex:"ตึกนั้นสูงมากครับ", exRoman:"トゥック ナン スーン マーク クラップ（あのビルはとても高い）" },
+    { thai:"เตี้ย", kana:"ティア", roman:"tîa", meaning:"低い・背が低い", ex:"โต๊ะเตี้ยไปหน่อยครับ", exRoman:"トー ティア パイ ノーイ クラップ（テーブルが少し低い）" },
+    { thai:"หนัก", kana:"ナック", roman:"nàk", meaning:"重い", ex:"กระเป๋าหนักมากครับ", exRoman:"グラパオ ナック マーク クラップ（カバンがとても重い）" },
+    { thai:"เบา", kana:"バオ", roman:"bao", meaning:"軽い", ex:"กระเป๋าใบนี้เบาดีครับ", exRoman:"グラパオ バイ ニー バオ ディー クラップ（このカバンは軽くていい）" },
+    { thai:"สวยงาม", kana:"スアイ ンガーム", roman:"sǔay ngaam", meaning:"美しい", ex:"วัดนี้สวยงามมากครับ", exRoman:"ワット ニー スアイ ンガーム マーク クラップ（この寺はとても美しい）" },
+  ],
+  "日常単語": [
+    { thai:"บ้าน", kana:"バーン", roman:"bâan", meaning:"家", ex:"บ้านผมอยู่ใกล้ๆ ครับ", exRoman:"バーン ポム ユー グライ グライ クラップ（私の家はすぐ近くにあります）" },
+    { thai:"โรงเรียน", kana:"ローン リアン", roman:"rong rian", meaning:"学校", ex:"โรงเรียนอยู่ห่างจากบ้านครับ", exRoman:"ローン リアン ユー ハーン チャーク バーン クラップ（学校は家から遠い）" },
+    { thai:"ห้างสรรพสินค้า", kana:"ハーン サッパシンカー", roman:"hâang sàp sinkháa", meaning:"デパート", ex:"ไปห้างสรรพสินค้ากันไหมครับ", exRoman:"パイ ハーン サッパシンカー ガン マイ クラップ（デパートに行きませんか？）" },
+    { thai:"รถ", kana:"ロット", roman:"rót", meaning:"車", ex:"รถติดมากวันนี้ครับ", exRoman:"ロット ティット マーク ワン ニー クラップ（今日はとても渋滞している）" },
+    { thai:"รถไฟฟ้า", kana:"ロット ファイ ファー", roman:"rót fai fáa", meaning:"電車・BTS", ex:"นั่งรถไฟฟ้าไปสยามครับ", exRoman:"ナン ロット ファイ ファー パイ サヤーム クラップ（BTSでサイアムに行く）" },
+    { thai:"เงิน", kana:"グン", roman:"ngən", meaning:"お金", ex:"ไม่มีเงินเลยครับ", exRoman:"マイ ミー グン ルーイ クラップ（お金が全然ない）" },
+    { thai:"เวลา", kana:"ウェーラー", roman:"weelaa", meaning:"時間", ex:"ไม่มีเวลาครับ รีบมาก", exRoman:"マイ ミー ウェーラー クラップ リープ マーク（時間がありません、とても急いでいる）" },
+    { thai:"วัน", kana:"ワン", roman:"wan", meaning:"日", ex:"วันนี้อากาศดีมากครับ", exRoman:"ワン ニー アーガート ディー マーク クラップ（今日は天気がとても良い）" },
+    { thai:"คน", kana:"コン", roman:"khon", meaning:"人", ex:"คนไทยใจดีมากครับ", exRoman:"コン タイ チャイ ディー マーク クラップ（タイ人はとても親切）" },
+    { thai:"เพื่อน", kana:"プアン", roman:"phʉ̂an", meaning:"友達", ex:"เพื่อนผมเป็นคนไทยครับ", exRoman:"プアン ポム ペン コン タイ クラップ（私の友達はタイ人です）" },
+    { thai:"ครอบครัว", kana:"クローブ クルア", roman:"khrɔ̂ɔp khrua", meaning:"家族", ex:"ครอบครัวผมอยู่ญี่ปุ่นครับ", exRoman:"クローブ クルア ポム ユー イープン クラップ（私の家族は日本にいます）" },
+    { thai:"พ่อ", kana:"ポー", roman:"phɔ̂ɔ", meaning:"父", ex:"พ่อผมชอบกินอาหารไทยครับ", exRoman:"ポー ポム チョープ ギン アーハーン タイ クラップ（父はタイ料理が好き）" },
+    { thai:"แม่", kana:"メー", roman:"mɛ̂ɛ", meaning:"母", ex:"แม่ผมทำอาหารเก่งมากครับ", exRoman:"メー ポム タム アーハーン ゲン マーク クラップ（母は料理がとても上手）" },
+    { thai:"พี่ชาย", kana:"ピー チャーイ", roman:"phîi chaai", meaning:"兄", ex:"พี่ชายผมสูงมากครับ", exRoman:"ピー チャーイ ポム スーン マーク クラップ（兄はとても背が高い）" },
+    { thai:"น้องชาย", kana:"ノーン チャーイ", roman:"nɔ́ɔng chaai", meaning:"弟", ex:"น้องชายผมยังเรียนอยู่ครับ", exRoman:"ノーン チャーイ ポム ヤン リアン ユー クラップ（弟はまだ勉強中です）" },
+    { thai:"พี่สาว", kana:"ピー サーオ", roman:"phîi sǎao", meaning:"姉", ex:"พี่สาวผมทำงานที่กรุงเทพฯ ครับ", exRoman:"ピー サーオ ポム タム ンガーン ティー グルンテープ クラップ（姉はバンコクで働いています）" },
+    { thai:"น้องสาว", kana:"ノーン サーオ", roman:"nɔ́ɔng sǎao", meaning:"妹", ex:"น้องสาวผมน่ารักมากครับ", exRoman:"ノーン サーオ ポム ナーラック マーク クラップ（妹はとても可愛い）" },
+    { thai:"โทรศัพท์", kana:"トーラサップ", roman:"thoosàp", meaning:"電話・スマホ", ex:"โทรศัพท์ผมหายครับ", exRoman:"トーラサップ ポム ハーイ クラップ（スマホをなくしました）" },
+    { thai:"คอมพิวเตอร์", kana:"コム ピウ ター", roman:"khompiwthəə", meaning:"コンピューター", ex:"คอมพิวเตอร์เสียแล้วครับ", exRoman:"コム ピウ ター シア レーオ クラップ（パソコンが壊れました）" },
+    { thai:"ถนน", kana:"タノン", roman:"thanǒn", meaning:"道路", ex:"ถนนนี้รถติดมากครับ", exRoman:"タノン ニー ロット ティット マーク クラップ（この道は渋滞が多い）" },
+    { thai:"ตลาด", kana:"タラート", roman:"talàat", meaning:"市場", ex:"ตลาดนัดมีของถูกมากครับ", exRoman:"タラート ナット ミー コーン トゥーク マーク クラップ（週末市場は安いものが多い）" },
+    { thai:"โรงพยาบาล", kana:"ローン パヤーバーン", roman:"rong phayaabaan", meaning:"病院", ex:"โรงพยาบาลอยู่ที่ไหนครับ", exRoman:"ローン パヤーバーン ユー ティーナイ クラップ（病院はどこですか？）" },
+    { thai:"ธนาคาร", kana:"タナーカーン", roman:"thanaa khaan", meaning:"銀行", ex:"ธนาคารเปิดกี่โมงครับ", exRoman:"タナーカーン プート ギー モーン クラップ（銀行は何時に開きますか？）" },
+    { thai:"สนามบิน", kana:"サナーム ビン", roman:"sanǎam bin", meaning:"空港", ex:"ไปสนามบินยังไงครับ", exRoman:"パイ サナーム ビン ヤンガイ クラップ（空港にはどうやって行きますか？）" },
+    { thai:"ร้านอาหาร", kana:"ラーン アーハーン", roman:"ráan aahǎan", meaning:"レストラン", ex:"ร้านอาหารนี้อร่อยมากครับ", exRoman:"ラーン アーハーン ニー アローイ マーク クラップ（このレストランはとても美味しい）" },
+    { thai:"โรงแรม", kana:"ローン レーム", roman:"rong rɛɛm", meaning:"ホテル", ex:"โรงแรมอยู่ใกล้ BTS ครับ", exRoman:"ローン レーム ユー グライ BTS クラップ（ホテルはBTSの近くにあります）" },
+    { thai:"ห้องน้ำ", kana:"ホーン ナーム", roman:"hɔ̂ng náam", meaning:"トイレ・バスルーム", ex:"ห้องน้ำสะอาดดีครับ", exRoman:"ホーン ナーム サアート ディー クラップ（バスルームが清潔でいい）" },
+    { thai:"ประตู", kana:"プラトゥー", roman:"pratuu", meaning:"ドア", ex:"ช่วยปิดประตูด้วยครับ", exRoman:"チュアイ ピット プラトゥー ドゥアイ クラップ（ドアを閉めてください）" },
+    { thai:"หน้าต่าง", kana:"ナー ターン", roman:"nâa tàang", meaning:"窓", ex:"ช่วยเปิดหน้าต่างหน่อยครับ", exRoman:"チュアイ プート ナー ターン ノーイ クラップ（窓を開けてください）" },
+    { thai:"เตียง", kana:"ティアン", roman:"tiang", meaning:"ベッド", ex:"เตียงนุ่มมากครับ นอนหลับสบาย", exRoman:"ティアン ヌム マーク クラップ ノーン ラップ サバーイ（ベッドがとても柔らかく、よく眠れる）" },
+  ],
+  "動詞": [
+    { thai:"กิน", kana:"ギン", roman:"kin", meaning:"食べる", ex:"กินข้าวแล้วหรือยังครับ", exRoman:"ギン カーオ レーオ ルー ヤン クラップ（もうご飯食べましたか？）" },
+    { thai:"ดื่ม", kana:"ドゥーム", roman:"dʉ̀ʉm", meaning:"飲む", ex:"ดื่มน้ำเยอะๆ นะครับ", exRoman:"ドゥーム ナーム ヨー ヨー ナ クラップ（水をたくさん飲んでください）" },
+    { thai:"ไป", kana:"パイ", roman:"pai", meaning:"行く", ex:"ไปตลาดด้วยกันไหมครับ", exRoman:"パイ タラート ドゥアイ ガン マイ クラップ（一緒に市場に行きませんか？）" },
+    { thai:"มา", kana:"マー", roman:"maa", meaning:"来る", ex:"มาที่นี่บ่อยไหมครับ", exRoman:"マー ティー ニー ボーイ マイ クラップ（ここによく来ますか？）" },
+    { thai:"นอน", kana:"ノーン", roman:"nɔɔn", meaning:"寝る", ex:"นอนหลับฝันดีนะครับ", exRoman:"ノーン ラップ ファン ディー ナ クラップ（良い夢を見てください）" },
+    { thai:"ลุก", kana:"ルック", roman:"lúk", meaning:"起きる", ex:"ตื่นนอนตอนกี่โมงครับ", exRoman:"トゥーン ノーン トーン ギー モーン クラップ（何時に起きますか？）" },
+    { thai:"ซื้อ", kana:"スー", roman:"sʉ́ʉ", meaning:"買う", ex:"ซื้อของที่ตลาดมาครับ", exRoman:"スー コーン ティー タラート マー クラップ（市場で買い物してきました）" },
+    { thai:"ขาย", kana:"カーイ", roman:"khǎai", meaning:"売る", ex:"ขายอะไรครับ ราคาเท่าไหร่", exRoman:"カーイ アライ クラップ ラーカー タオライ（何を売っていますか？いくらですか？）" },
+    { thai:"พูด", kana:"プート", roman:"phûut", meaning:"話す", ex:"พูดไทยได้นิดหน่อยครับ", exRoman:"プート タイ ダイ ニット ノーイ クラップ（タイ語が少し話せます）" },
+    { thai:"ฟัง", kana:"ファン", roman:"fang", meaning:"聞く", ex:"ฟังเพลงไทยทุกวันครับ", exRoman:"ファン プレーン タイ トゥック ワン クラップ（毎日タイの音楽を聴いています）" },
+    { thai:"อ่าน", kana:"アーン", roman:"àan", meaning:"読む", ex:"อ่านหนังสือภาษาไทยครับ", exRoman:"アーン ナンスー パーサー タイ クラップ（タイ語の本を読んでいます）" },
+    { thai:"เขียน", kana:"キアン", roman:"khǐan", meaning:"書く", ex:"เขียนภาษาไทยยากครับ", exRoman:"キアン パーサー タイ ヤーク クラップ（タイ語を書くのは難しい）" },
+    { thai:"ดู", kana:"ドゥー", roman:"duu", meaning:"見る", ex:"ดูหนังไทยสนุกมากครับ", exRoman:"ドゥー ナン タイ サヌック マーク クラップ（タイ映画を見るのはとても楽しい）" },
+    { thai:"รู้", kana:"ルー", roman:"rúu", meaning:"知っている", ex:"รู้จักร้านนี้ไหมครับ", exRoman:"ルーチャック ラーン ニー マイ クラップ（この店を知っていますか？）" },
+    { thai:"รัก", kana:"ラック", roman:"rák", meaning:"愛する・好き", ex:"รักเมืองไทยมากครับ", exRoman:"ラック ムアン タイ マーク クラップ（タイがとても好きです）" },
+    { thai:"ชอบ", kana:"チョープ", roman:"chɔ̂ɔp", meaning:"好き・好む", ex:"ชอบอาหารไทยมากครับ", exRoman:"チョープ アーハーン タイ マーク クラップ（タイ料理がとても好きです）" },
+    { thai:"ต้องการ", kana:"トーン ガーン", roman:"tɔ̂ɔng kaan", meaning:"欲しい・必要", ex:"ต้องการความช่วยเหลือครับ", exRoman:"トーン ガーン クワーム チュアイ ルア クラップ（助けが必要です）" },
+    { thai:"อยาก", kana:"ヤーク", roman:"yàak", meaning:"〜したい", ex:"อยากไปเที่ยวทะเลครับ", exRoman:"ヤーク パイ ティアオ タレー クラップ（海に遊びに行きたい）" },
+    { thai:"ทำ", kana:"タム", roman:"tham", meaning:"する・作る", ex:"ทำงานที่ไหนครับ", exRoman:"タム ンガーン ティーナイ クラップ（どこで働いていますか？）" },
+    { thai:"ช่วย", kana:"チュアイ", roman:"chûai", meaning:"助ける・手伝う", ex:"ช่วยผมหน่อยได้ไหมครับ", exRoman:"チュアイ ポム ノーイ ダイ マイ クラップ（少し手伝っていただけますか？）" },
+    { thai:"เปิด", kana:"プート", roman:"pəət", meaning:"開ける・開く", ex:"ช่วยเปิดประตูด้วยครับ", exRoman:"チュアイ プート プラトゥー ドゥアイ クラップ（ドアを開けてください）" },
+    { thai:"ปิด", kana:"ピット", roman:"pìt", meaning:"閉める・閉じる", ex:"ปิดไฟด้วยนะครับ", exRoman:"ピット ファイ ドゥアイ ナ クラップ（電気を消してください）" },
+    { thai:"หยุด", kana:"ユット", roman:"yùt", meaning:"止まる・やめる", ex:"หยุดที่นี่เลยครับ", exRoman:"ユット ティー ニー ルーイ クラップ（ここで止まってください）" },
+    { thai:"เริ่ม", kana:"ルーム", roman:"rəəm", meaning:"始める", ex:"เริ่มเรียนภาษาไทยครับ", exRoman:"ルーム リアン パーサー タイ クラップ（タイ語の勉強を始めました）" },
+    { thai:"เดิน", kana:"ドーン", roman:"dəən", meaning:"歩く", ex:"เดินไปได้เลยครับ ใกล้มาก", exRoman:"ドーン パイ ダイ ルーイ クラップ グライ マーク（歩いて行けますよ、すぐ近く）" },
+    { thai:"วิ่ง", kana:"ウィン", roman:"wîng", meaning:"走る", ex:"วิ่งออกกำลังกายทุกเช้าครับ", exRoman:"ウィン オーク ガムラン ガーイ トゥック チャオ クラップ（毎朝ランニングで運動しています）" },
+    { thai:"นั่ง", kana:"ナン", roman:"nâng", meaning:"座る", ex:"นั่งที่นี่ได้ไหมครับ", exRoman:"ナン ティー ニー ダイ マイ クラップ（ここに座っていいですか？）" },
+    { thai:"ยืน", kana:"ユーン", roman:"yʉʉn", meaning:"立つ", ex:"ยืนรอนานมากครับ", exRoman:"ユーン ロー ナーン マーク クラップ（長い間立って待ちました）" },
+    { thai:"ถาม", kana:"タームム", roman:"thǎam", meaning:"質問する", ex:"ขอถามหน่อยได้ไหมครับ", exRoman:"コー タームム ノーイ ダイ マイ クラップ（少し質問してもいいですか？）" },
+    { thai:"ตอบ", kana:"トープ", roman:"tɔ̀ɔp", meaning:"答える", ex:"ตอบไม่ถูกครับ ขอโทษ", exRoman:"トープ マイ トゥーク クラップ コートート（答えられません、すみません）" },
+  ],
+  "身体": [
+    { thai:"หัว", kana:"フア", roman:"hǔa", meaning:"頭", ex:"ปวดหัวมากครับ", exRoman:"プアット フア マーク クラップ（頭がとても痛い）" },
+    { thai:"หน้า", kana:"ナー", roman:"nâa", meaning:"顔", ex:"ล้างหน้าแล้วครับ", exRoman:"ラーン ナー レーオ クラップ（顔を洗いました）" },
+    { thai:"ตา", kana:"ター", roman:"taa", meaning:"目", ex:"ตาแดงครับ นอนน้อย", exRoman:"ター デーン クラップ ノーン ノーイ（目が赤い、睡眠不足です）" },
+    { thai:"หู", kana:"フー", roman:"hǔu", meaning:"耳", ex:"หูอื้อครับ เสียงดังมาก", exRoman:"フー ウー クラップ シアン ダン マーク（耳鳴りがします、音が大きすぎる）" },
+    { thai:"จมูก", kana:"チャムーク", roman:"camûuk", meaning:"鼻", ex:"จมูกอักเสบครับ หายใจไม่ออก", exRoman:"チャムーク アック セープ クラップ ハーイ チャイ マイ オーク（鼻が炎症、鼻が詰まっている）" },
+    { thai:"ปาก", kana:"パーク", roman:"pàak", meaning:"口", ex:"ปากแห้งครับ ขอน้ำหน่อย", exRoman:"パーク ヘーン クラップ コー ナーム ノーイ（口が乾いています、水をください）" },
+    { thai:"ฟัน", kana:"ファン", roman:"fan", meaning:"歯", ex:"ปวดฟันมากครับ ต้องไปหาหมอ", exRoman:"プアット ファン マーク クラップ トーン パイ ハー モー（歯がとても痛い、医者に行かなければ）" },
+    { thai:"คอ", kana:"コー", roman:"khɔɔ", meaning:"首・のど", ex:"เจ็บคอครับ เป็นหวัด", exRoman:"チェップ コー クラップ ペン ワット（喉が痛い、風邪をひいています）" },
+    { thai:"ไหล่", kana:"ライ", roman:"lài", meaning:"肩", ex:"ไหล่เมื่อยครับ นั่งนานมาก", exRoman:"ライ ムアイ クラップ ナン ナーン マーク（肩がこった、長時間座りすぎ）" },
+    { thai:"แขน", kana:"ケーン", roman:"khɛɛn", meaning:"腕", ex:"แขนขวาเจ็บครับ", exRoman:"ケーン クワー チェップ クラップ（右腕が痛い）" },
+    { thai:"มือ", kana:"ムー", roman:"mʉʉ", meaning:"手", ex:"ล้างมือก่อนกินข้าวนะครับ", exRoman:"ラーン ムー ゴーン ギン カーオ ナ クラップ（ご飯の前に手を洗ってください）" },
+    { thai:"นิ้ว", kana:"ニウ", roman:"níw", meaning:"指", ex:"นิ้วโป้งเจ็บครับ", exRoman:"ニウ ポーン チェップ クラップ（親指が痛い）" },
+    { thai:"หน้าอก", kana:"ナー オック", roman:"nâa òk", meaning:"胸", ex:"เจ็บหน้าอกครับ ต้องหาหมอ", exRoman:"チェップ ナー オック クラップ トーン ハー モー（胸が痛い、医者に診てもらわないと）" },
+    { thai:"ท้อง", kana:"トーン", roman:"thɔ́ɔng", meaning:"お腹", ex:"ปวดท้องมากครับ กินอะไรไม่ได้", exRoman:"プアット トーン マーク クラップ ギン アライ マイ ダイ（お腹がとても痛くて何も食べられない）" },
+    { thai:"หลัง", kana:"ラン", roman:"lǎng", meaning:"背中", ex:"ปวดหลังมากครับ ยกของหนัก", exRoman:"プアット ラン マーク クラップ ヨック コーン ナック（腰が痛い、重い物を持ち上げた）" },
+    { thai:"ขา", kana:"カー", roman:"khǎa", meaning:"足・脚", ex:"ขาเมื่อยมากครับ เดินเยอะ", exRoman:"カー ムアイ マーク クラップ ドーン ヨー（脚がとても疲れた、たくさん歩いた）" },
+    { thai:"เท้า", kana:"タオ", roman:"thâao", meaning:"足（足首から下）", ex:"เท้าเจ็บครับ รองเท้าคับ", exRoman:"タオ チェップ クラップ ローン タオ カップ（足が痛い、靴がきつい）" },
+    { thai:"เจ็บ", kana:"チェップ", roman:"cèp", meaning:"痛い", ex:"เจ็บมากครับ ต้องไปหาหมอ", exRoman:"チェップ マーク クラップ トーン パイ ハー モー（とても痛い、医者に行かないと）" },
+    { thai:"ป่วย", kana:"プアイ", roman:"pùai", meaning:"病気", ex:"ป่วยอยู่ครับ ไปไม่ได้", exRoman:"プアイ ユー クラップ パイ マイ ダイ（病気です、行けません）" },
+    { thai:"ผม", kana:"ポム", roman:"phǒm", meaning:"髪の毛", ex:"ตัดผมที่ไหนดีครับ", exRoman:"タット ポム ティーナイ ディー クラップ（どこで散髪するといいですか？）" },
+  ],
+  "曜日・時間": [
+    { thai:"วันจันทร์", kana:"ワン チャン", roman:"wan can", meaning:"月曜日", ex:"วันจันทร์ต้องทำงานครับ", exRoman:"ワン チャン トーン タム ンガーン クラップ（月曜日は仕事しなければ）" },
+    { thai:"วันอังคาร", kana:"ワン アンคアーン", roman:"wan angkhaan", meaning:"火曜日", ex:"วันอังคารมีประชุมครับ", exRoman:"ワン アンカーン ミー プラチュム クラップ（火曜日に会議があります）" },
+    { thai:"วันพุธ", kana:"ワン プット", roman:"wan phút", meaning:"水曜日", ex:"วันพุธไปกินข้าวด้วยกันไหมครับ", exRoman:"ワン プット パイ ギン カーオ ドゥアイ ガン マイ クラップ（水曜日に一緒にご飯食べませんか？）" },
+    { thai:"วันพฤหัสบดี", kana:"ワン パルハット", roman:"wan pharʉ́hàt", meaning:"木曜日", ex:"วันพฤหัสฯ หยุดครับ", exRoman:"ワン パルハット ユット クラップ（木曜日は休みです）" },
+    { thai:"วันศุกร์", kana:"ワン スック", roman:"wan sùk", meaning:"金曜日", ex:"วันศุกร์เลิกงานเร็วครับ", exRoman:"ワン スック ルーク ンガーン レオ クラップ（金曜日は早く仕事が終わる）" },
+    { thai:"วันเสาร์", kana:"ワン サオ", roman:"wan sǎo", meaning:"土曜日", ex:"วันเสาร์ไปเที่ยวครับ", exRoman:"ワン サオ パイ ティアオ クラップ（土曜日は遊びに行きます）" },
+    { thai:"วันอาทิตย์", kana:"ワン アーティット", roman:"wan aathít", meaning:"日曜日", ex:"วันอาทิตย์พักผ่อนที่บ้านครับ", exRoman:"ワン アーティット パック ポーン ティー バーン クラップ（日曜日は家で休みます）" },
+    { thai:"วันนี้", kana:"ワン ニー", roman:"wan níi", meaning:"今日", ex:"วันนี้อากาศร้อนมากครับ", exRoman:"ワン ニー アーガート ローン マーク クラップ（今日はとても暑い）" },
+    { thai:"พรุ่งนี้", kana:"プルン ニー", roman:"phrûng níi", meaning:"明日", ex:"พรุ่งนี้จะไปหาคุณครับ", exRoman:"プルン ニー チャ パイ ハー クン クラップ（明日あなたに会いに行きます）" },
+    { thai:"เมื่อวาน", kana:"ムア ワーン", roman:"mʉ̂a waan", meaning:"昨日", ex:"เมื่อวานไปไหนมาครับ", exRoman:"ムア ワーン パイ ナイ マー クラップ（昨日どこに行ったんですか？）" },
+    { thai:"เช้า", kana:"チャオ", roman:"cháao", meaning:"朝", ex:"ตื่นเช้ามากครับวันนี้", exRoman:"トゥーン チャオ マーク クラップ ワン ニー（今日はとても早く起きました）" },
+    { thai:"กลางวัน", kana:"グラーン ワン", roman:"klaang wan", meaning:"昼", ex:"กลางวันกินอะไรดีครับ", exRoman:"グラーン ワン ギン アライ ディー クラップ（昼は何を食べようかな）" },
+    { thai:"เย็น", kana:"イェン", roman:"yen", meaning:"夕方", ex:"เย็นนี้ว่างไหมครับ", exRoman:"イェン ニー ワーン マイ クラップ（今夕方は暇ですか？）" },
+    { thai:"กลางคืน", kana:"グラーン クーン", roman:"klaang khʉʉn", meaning:"夜", ex:"กลางคืนอากาศเย็นสบายครับ", exRoman:"グラーン クーン アーガート イェン サバーイ クラップ（夜は涼しくて気持ちいい）" },
+    { thai:"ตอนนี้", kana:"トーン ニー", roman:"tɔɔn níi", meaning:"今", ex:"ตอนนี้อยู่ที่ไหนครับ", exRoman:"トーン ニー ユー ティーナイ クラップ（今どこにいますか？）" },
+    { thai:"เดือน", kana:"ドゥアン", roman:"dʉan", meaning:"月（month）", ex:"เดือนหน้าไปเที่ยวไทยครับ", exRoman:"ドゥアン ナー パイ ティアオ タイ クラップ（来月タイに旅行します）" },
+    { thai:"ปี", kana:"ピー", roman:"pii", meaning:"年", ex:"ปีหน้าจะเรียนภาษาไทยครับ", exRoman:"ピー ナー チャ リアン パーサー タイ クラップ（来年タイ語を勉強します）" },
+    { thai:"สัปดาห์", kana:"サップ ダー", roman:"sàpdaa", meaning:"週", ex:"สัปดาห์หน้าพบกันนะครับ", exRoman:"サップ ダー ナー ポップ ガン ナ クラップ（来週会いましょう）" },
+    { thai:"ชั่วโมง", kana:"チュア モーン", roman:"chûa moong", meaning:"時間（hour）", ex:"รอสองชั่วโมงแล้วครับ", exRoman:"ロー ソーン チュア モーン レーオ クラップ（もう2時間待っています）" },
+    { thai:"นาที", kana:"ナーティー", roman:"naathii", meaning:"分（minute）", ex:"อีกห้านาทีถึงครับ", exRoman:"イーク ハー ナーティー トゥン クラップ（あと5分で着きます）" },
+  ],
+  "旅行・交通": [
+    { thai:"สนามบิน", kana:"サナーム ビン", roman:"sanǎam bin", meaning:"空港", ex:"ไปสนามบินใช้เวลานานไหมครับ", exRoman:"パイ サナーム ビン チャイ ウェーラー ナーン マイ クラップ（空港まで時間かかりますか？）" },
+    { thai:"เครื่องบิน", kana:"クルアン ビン", roman:"khrʉ̂ang bin", meaning:"飛行機", ex:"เครื่องบินออกกี่โมงครับ", exRoman:"クルアン ビン オーク ギー モーン クラップ（飛行機は何時に出発しますか？）" },
+    { thai:"รถแท็กซี่", kana:"ロット テクシー", roman:"rót thɛ́ksii", meaning:"タクシー", ex:"ช่วยเรียกแท็กซี่ให้ด้วยครับ", exRoman:"チュアイ リアック テクシー ハイ ドゥアイ クラップ（タクシーを呼んでください）" },
+    { thai:"รถตุ๊กตุ๊ก", kana:"ロット トゥック トゥック", roman:"rót túktúk", meaning:"トゥクトゥク", ex:"นั่งตุ๊กตุ๊กสนุกมากครับ", exRoman:"ナン トゥック トゥック サヌック マーク クラップ（トゥクトゥクに乗るのがとても楽しい）" },
+    { thai:"รถเมล์", kana:"ロット メー", roman:"rót mee", meaning:"バス", ex:"รถเมล์ไปสยามมีไหมครับ", exRoman:"ロット メー パイ サヤーム ミー マイ クラップ（サイアムへのバスはありますか？）" },
+    { thai:"เรือ", kana:"ルア", roman:"rʉa", meaning:"船・ボート", ex:"นั่งเรือแม่น้ำเจ้าพระยาครับ", exRoman:"ナン ルア メー ナーム チャオ プラヤー クラップ（チャオプラヤー川のボートに乗ります）" },
+    { thai:"ตั๋ว", kana:"トゥア", roman:"tǔa", meaning:"チケット・切符", ex:"ซื้อตั๋วที่ไหนครับ", exRoman:"スー トゥア ティーナイ クラップ（チケットはどこで買いますか？）" },
+    { thai:"หนังสือเดินทาง", kana:"ナンスー ドーン ターン", roman:"nǎngsʉʉ dəən thaang", meaning:"パスポート", ex:"หนังสือเดินทางหมดอายุครับ", exRoman:"ナンスー ドーン ターン モット アーユ クラップ（パスポートが期限切れです）" },
+    { thai:"โรงแรม", kana:"ローン レーム", roman:"rong rɛɛm", meaning:"ホテル", ex:"โรงแรมนี้ราคาเท่าไหร่ครับ", exRoman:"ローン レーム ニー ラーカー タオライ クラップ（このホテルはいくらですか？）" },
+    { thai:"ห้องพัก", kana:"ホーン パック", roman:"hɔ̂ng phák", meaning:"部屋（ホテルの）", ex:"ขอห้องพักสำหรับสองคนครับ", exRoman:"コー ホーン パック サムラップ ソーン コン クラップ（2人用の部屋をください）" },
+    { thai:"แผนที่", kana:"ペーン ティー", roman:"phɛ̌ɛn thîi", meaning:"地図", ex:"ขอแผนที่เมืองหน่อยครับ", exRoman:"コー ペーン ティー ムアン ノーイ クラップ（市内の地図をください）" },
+    { thai:"ทะเล", kana:"タレー", roman:"thalee", meaning:"海", ex:"ทะเลที่ภูเก็ตสวยมากครับ", exRoman:"タレー ティー プーケット スアイ マーク クラップ（プーケットの海はとてもきれい）" },
+    { thai:"ภูเขา", kana:"プーカオ", roman:"phuukhǎo", meaning:"山", ex:"ภูเขาทางเหนือสวยครับ", exRoman:"プーカオ ターン ヌア スアイ クラップ（北部の山がきれい）" },
+    { thai:"วัด", kana:"ワット", roman:"wát", meaning:"寺院", ex:"วัดพระแก้วสวยมากครับ", exRoman:"ワット プラ ゲーオ スアイ マーク クラップ（エメラルド寺院はとてもきれい）" },
+    { thai:"พิพิธภัณฑ์", kana:"ピピット タパン", roman:"phíphítthaphan", meaning:"博物館", ex:"พิพิธภัณฑ์เปิดกี่โมงครับ", exRoman:"ピピット タパン プート ギー モーン クラップ（博物館は何時に開きますか？）" },
+    { thai:"ชายหาด", kana:"チャーイ ハート", roman:"chaai hàat", meaning:"ビーチ", ex:"ชายหาดสวยสะอาดมากครับ", exRoman:"チャーイ ハート スアイ サアート マーク クラップ（ビーチがとてもきれいで清潔）" },
+    { thai:"ตรงไป", kana:"トロン パイ", roman:"trong pai", meaning:"まっすぐ", ex:"ตรงไปแล้วเลี้ยวซ้ายครับ", exRoman:"トロン パイ レーオ リアオ サーイ クラップ（まっすぐ行って左に曲がってください）" },
+    { thai:"เลี้ยวซ้าย", kana:"リアオ サーイ", roman:"líaw sáai", meaning:"左に曲がる", ex:"เลี้ยวซ้ายที่สี่แยกครับ", exRoman:"リアオ サーイ ティー スィー イェーク クラップ（交差点で左に曲がってください）" },
+    { thai:"เลี้ยวขวา", kana:"リアオ クワー", roman:"líaw khwǎa", meaning:"右に曲がる", ex:"เลี้ยวขวาแล้วถึงเลยครับ", exRoman:"リアオ クワー レーオ トゥン ルーイ クラップ（右に曲がればすぐ着きます）" },
+    { thai:"ไกล", kana:"グライ", roman:"klai", meaning:"遠い", ex:"ไกลมากครับ ต้องนั่งรถ", exRoman:"グライ マーク クラップ トーン ナン ロット（とても遠い、車に乗らないと）" },
+    { thai:"ใกล้", kana:"グライ", roman:"klâi", meaning:"近い", ex:"ใกล้มากครับ เดินไปได้เลย", exRoman:"グライ マーク クラップ ドーン パイ ダイ ルーイ（とても近い、歩いて行けます）" },
+  ],
+  "ショッピング": [
+    { thai:"ราคา", kana:"ラーカー", roman:"raakhaa", meaning:"値段・価格", ex:"ราคาเท่าไหร่ครับ ถูกไหม", exRoman:"ラーカー タオライ クラップ トゥーク マイ（値段はいくらですか？安いですか？）" },
+    { thai:"ถูก", kana:"トゥーก", roman:"thùuk", meaning:"安い", ex:"ถูกมากเลยครับ ซื้อเลยดีกว่า", exRoman:"トゥーク マーク ルーイ クラップ スー ルーイ ディー クワー（すごく安い、買った方がいい）" },
+    { thai:"แพง", kana:"ペーン", roman:"phɛɛng", meaning:"高い（値段）", ex:"แพงไปครับ ลดได้ไหม", exRoman:"ペーン パイ クラップ ロット ダイ マイ（高すぎます、値引きできますか？）" },
+    { thai:"ลด", kana:"ロット", roman:"lót", meaning:"割引・値引き", ex:"ลดได้อีกไหมครับ", exRoman:"ロット ダイ イーク マイ クラップ（もう少し安くなりますか？）" },
+    { thai:"ซื้อ", kana:"スー", roman:"sʉ́ʉ", meaning:"買う", ex:"ซื้ออันนี้ครับ", exRoman:"スー アン ニー クラップ（これを買います）" },
+    { thai:"ขาย", kana:"カーイ", roman:"khǎai", meaning:"売る", ex:"ขายดีไหมครับวันนี้", exRoman:"カーイ ディー マイ クラップ ワン ニー（今日は売れていますか？）" },
+    { thai:"จ่ายเงิน", kana:"チャーイ グン", roman:"càai ngən", meaning:"支払う", ex:"จ่ายเงินที่ไหนครับ", exRoman:"チャーイ グン ティーナイ クラップ（どこで支払いますか？）" },
+    { thai:"เงินทอน", kana:"グン トーン", roman:"ngən thɔɔn", meaning:"お釣り", ex:"เงินทอนไม่ถูกครับ", exRoman:"グン トーン マイ トゥーク クラップ（お釣りが違います）" },
+    { thai:"ใบเสร็จ", kana:"バイ เセット", roman:"bai sèt", meaning:"レシート", ex:"ขอใบเสร็จด้วยครับ", exRoman:"コー バイ セット ドゥアイ クラップ（レシートをください）" },
+    { thai:"ถุง", kana:"トゥン", roman:"thǔng", meaning:"袋", ex:"ขอถุงด้วยครับ", exRoman:"コー トゥン ドゥアイ クラップ（袋をください）" },
+    { thai:"สี", kana:"スィー", roman:"sǐi", meaning:"色", ex:"มีสีอื่นไหมครับ", exRoman:"ミー スィー ウーン マイ クラップ（他の色はありますか？）" },
+    { thai:"ขนาด", kana:"カナート", roman:"khanàat", meaning:"サイズ", ex:"ขนาดใหญ่กว่านี้มีไหมครับ", exRoman:"カナート ヤイ クワー ニー ミー マイ クラップ（これより大きいサイズはありますか？）" },
+    { thai:"ลอง", kana:"ローン", roman:"lɔɔng", meaning:"試す・試着する", ex:"ลองใส่ดูได้ไหมครับ", exRoman:"ローン サイ ドゥー ダイ マイ クラップ（試着してもいいですか？）" },
+    { thai:"เปลี่ยน", kana:"プリアน", roman:"plìan", meaning:"交換する", ex:"เปลี่ยนสินค้าได้ไหมครับ", exRoman:"プリアン シンカー ダイ マイ クラップ（商品を交換できますか？）" },
+    { thai:"คืน", kana:"クーン", roman:"khʉʉn", meaning:"返品する", ex:"คืนสินค้าได้ไหมครับ ชำรุด", exRoman:"クーン シンカー ダイ マイ クラップ チャムルット（返品できますか？壊れています）" },
+    { thai:"บัตรเครดิต", kana:"バット クレーディット", roman:"bàt khreedìt", meaning:"クレジットカード", ex:"รับบัตรเครดิตไหมครับ", exRoman:"ラップ バット クレーディット マイ クラップ（クレジットカードは使えますか？）" },
+    { thai:"เงินสด", kana:"グン ソット", roman:"ngən sòt", meaning:"現金", ex:"จ่ายเงินสดได้ไหมครับ", exRoman:"チャーイ グン ソット ダイ マイ クラップ（現金で払えますか？）" },
+    { thai:"โอนเงิน", kana:"オーン グン", roman:"oon ngən", meaning:"振り込み・送金", ex:"โอนเงินผ่านแอปได้ไหมครับ", exRoman:"オーン グン パーン アップ ダイ マイ クラップ（アプリで送金できますか？）" },
+  ],
+};
+
+const CATEGORIES = Object.keys(WORDS);
+
+// 復習リスト: Set of "cat::thai" keys
+let bookmarks = new Set(JSON.parse(localStorage.getItem('thai_bookmarks') || '[]'));
+function saveBookmarks() { localStorage.setItem('thai_bookmarks', JSON.stringify([...bookmarks])); }
+function bookmarkKey(cat, word) { return cat + '::' + word.thai; }
+
+// State
+let flashCat = CATEGORIES[0];
+let flashIdx = 0;
+let flashFlipped = false;
+let flashOrder = [];
+let flashKnown = [];   // true/false/null per flashOrder slot
+let flashReviewMode = false; // 復習モード（ブックマーク単語のみ）
+let flashReviewList = []; // 復習モード用単語リスト
+
+let quizCat = CATEGORIES[0];
+let quizQuestions = [];
+let quizIdx = 0;
+let quizCorrect = 0;
+let quizWrong = 0;
+let quizAnswered = false;
+
+// Render category buttons
+function renderCats() {
+  const reviewCount = bookmarks.size;
+  ['flash-cats','quiz-cats'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    const cats = [...CATEGORIES];
+    el.innerHTML = cats.map(c => `
+      <button class="cat-btn ${(i===0?flashCat:quizCat)===c?'selected':''}"
+        onclick="${i===0?'setFlashCat':'setQuizCat'}('${c}')">${c}</button>
+    `).join('') + `<button class="cat-btn ${(i===0?flashCat:quizCat)==='__review__'?'selected':''}"
+        onclick="${i===0?'setFlashCatReview':'setQuizCatReview'}()">📌 復習リスト${reviewCount>0?`<span class='review-badge'>${reviewCount}</span>`:''}</button>`;
+  });
+}
+
+function shuffleFlash() {
+  flashReviewMode = false;
+  flashOrder = shuffle(WORDS[flashCat].map((_, i) => i));
+  flashKnown = new Array(flashOrder.length).fill(null);
+  flashIdx = 0;
+}
+
+function setFlashCatReview() {
+  flashCat = '__review__';
+  flashReviewMode = true;
+  flashReviewList = [];
+  for (const key of bookmarks) {
+    const [cat, thai] = key.split('::');
+    if (WORDS[cat]) {
+      const w = WORDS[cat].find(x => x.thai === thai);
+      if (w) flashReviewList.push({...w, _cat: cat});
+    }
+  }
+  flashReviewList = shuffle(flashReviewList);
+  flashKnown = new Array(flashReviewList.length).fill(null);
+  flashIdx = 0;
+  flashFlipped = false;
+  renderCats();
+  if (flashReviewList.length === 0) {
+    document.getElementById('flash-result').style.display = 'none';
+    document.getElementById('judge-controls').style.display = 'flex';
+    document.getElementById('flash-card').style.display = 'block';
+    document.querySelector('.card-controls').style.display = 'flex';
+    alert('復習リストが空です。カードの 🔖 ボタンか、クイズで間違えると自動追加されます。');
+    return;
+  }
+  renderCard();
+}
+
+function setQuizCatReview() {
+  quizCat = '__review__';
+  renderCats();
+}
+
+function setFlashCat(c) {
+  flashCat = c;
+  flashReviewMode = false;
+  shuffleFlash();
+  flashFlipped = false;
+  renderCats();
+  document.getElementById('flash-result').style.display = 'none';
+  document.getElementById('judge-controls').style.display = 'flex';
+  document.getElementById('flash-card').style.display = 'block';
+  document.querySelector('.card-controls').style.display = 'flex';
+  renderCard();
+}
+function setQuizCat(c) { quizCat = c; renderCats(); }
+
+// Flashcard
+function currentFlashWord() {
+  if (flashReviewMode) return flashReviewList[flashIdx];
+  return WORDS[flashCat][flashOrder[flashIdx]];
+}
+
+function renderCard() {
+  const w = currentFlashWord();
+  if (!w) return;
+  document.getElementById('card-thai').textContent = w.thai;
+  document.getElementById('card-kana').textContent = w.kana;
+  document.getElementById('card-roman').textContent = w.roman;
+  document.getElementById('card-meaning').textContent = w.meaning;
+  document.getElementById('card-example').textContent = w.ex || '';
+  document.getElementById('card-example-roman').textContent = w.exRoman || '';
+  document.getElementById('card-example-block').style.display = w.ex ? 'block' : 'none';
+  const total = flashReviewMode ? flashReviewList.length : WORDS[flashCat].length;
+  document.getElementById('flash-progress').textContent = `${flashIdx+1} / ${total}`;
+  document.getElementById('flash-bar').style.width = `${((flashIdx+1)/total)*100}%`;
+  document.getElementById('flash-card').classList.remove('flipped');
+  flashFlipped = false;
+
+  // ブックマークボタン状態
+  const cat = flashReviewMode ? (w._cat || flashCat) : flashCat;
+  const key = bookmarkKey(cat, w);
+  const btn = document.getElementById('bookmark-btn');
+  btn.classList.toggle('active', bookmarks.has(key));
+}
+
+function flipCard() {
+  flashFlipped = !flashFlipped;
+  document.getElementById('flash-card').classList.toggle('flipped', flashFlipped);
+}
+
+function judgeCard(known) {
+  flashKnown[flashIdx] = known;
+  // 間違えたらブックマーク自動追加
+  if (!known) {
+    const w = currentFlashWord();
+    const cat = flashReviewMode ? (w._cat || flashCat) : flashCat;
+    bookmarks.add(bookmarkKey(cat, w));
+    saveBookmarks();
+  }
+  const total = flashReviewMode ? flashReviewList.length : WORDS[flashCat].length;
+  if (flashIdx + 1 >= total) {
+    showFlashResult();
+  } else {
+    flashIdx++;
+    renderCard();
+  }
+}
+
+function toggleBookmark() {
+  const w = currentFlashWord();
+  if (!w) return;
+  const cat = flashReviewMode ? (w._cat || flashCat) : flashCat;
+  const key = bookmarkKey(cat, w);
+  if (bookmarks.has(key)) bookmarks.delete(key);
+  else bookmarks.add(key);
+  saveBookmarks();
+  renderCard();
+  renderCats();
+}
+
+function showFlashResult() {
+  document.getElementById('judge-controls').style.display = 'none';
+  document.getElementById('flash-card').style.display = 'none';
+  document.querySelector('.card-controls').style.display = 'none';
+  const total = flashKnown.length;
+  const knownCount = flashKnown.filter(x => x === true).length;
+  const unknownCount = flashKnown.filter(x => x === false).length;
+  const pct = Math.round(knownCount / total * 100);
+  document.getElementById('fr-score').textContent = `${pct}%`;
+  document.getElementById('fr-known-count').textContent = `✓ わかった ${knownCount}`;
+  document.getElementById('fr-unknown-count').textContent = `✗ わからなかった ${unknownCount}`;
+  let emoji, msg;
+  if (pct === 100) { emoji='🏆'; msg='完璧！全部わかった！'; }
+  else if (pct >= 80) { emoji='🎉'; msg='よくできました！'; }
+  else if (pct >= 50) { emoji='😊'; msg='復習リストで苦手を克服しよう！'; }
+  else { emoji='📚'; msg='まだまだ大丈夫！繰り返し練習しよう！'; }
+  document.getElementById('fr-emoji').textContent = emoji;
+  document.getElementById('fr-msg').textContent = msg;
+  const reviewBtn = document.getElementById('fr-review-btn');
+  reviewBtn.style.display = bookmarks.size > 0 ? 'inline-block' : 'none';
+  document.getElementById('flash-result').style.display = 'block';
+}
+
+function retryFlash() {
+  document.getElementById('flash-result').style.display = 'none';
+  document.getElementById('judge-controls').style.display = 'flex';
+  document.getElementById('flash-card').style.display = 'block';
+  document.querySelector('.card-controls').style.display = 'flex';
+  if (flashReviewMode) {
+    setFlashCatReview();
+  } else {
+    shuffleFlash();
+    renderCard();
+  }
+}
+
+function startReviewMode() {
+  document.getElementById('flash-result').style.display = 'none';
+  document.getElementById('judge-controls').style.display = 'flex';
+  document.getElementById('flash-card').style.display = 'block';
+  document.querySelector('.card-controls').style.display = 'flex';
+  setFlashCatReview();
+}
+
+function nextCard() {
+  const total = flashReviewMode ? flashReviewList.length : WORDS[flashCat].length;
+  flashIdx = (flashIdx + 1) % total;
+  renderCard();
+}
+function prevCard() {
+  const total = flashReviewMode ? flashReviewList.length : WORDS[flashCat].length;
+  flashIdx = (flashIdx - 1 + total) % total;
+  renderCard();
+}
+
+// Quiz
+function startQuiz() {
+  let words;
+  if (quizCat === '__review__') {
+    words = [];
+    for (const key of bookmarks) {
+      const [cat, thai] = key.split('::');
+      if (WORDS[cat]) {
+        const w = WORDS[cat].find(x => x.thai === thai);
+        if (w) words.push({...w, _cat: cat});
+      }
+    }
+    if (words.length === 0) { alert('復習リストが空です。'); return; }
+  } else {
+    words = WORDS[quizCat];
+  }
+  quizQuestions = shuffle([...words]).slice(0, Math.min(10, words.length));
+  quizIdx = 0; quizCorrect = 0; quizWrong = 0;
+  document.getElementById('quiz-start-area').style.display = 'none';
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-area').style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  quizAnswered = false;
+  const q = quizQuestions[quizIdx];
+  document.getElementById('q-thai').textContent = q.thai;
+  document.getElementById('q-kana').textContent = q.kana;
+  document.getElementById('q-roman').textContent = q.roman;
+  document.getElementById('quiz-progress').textContent = `${quizIdx+1} / ${quizQuestions.length}`;
+  document.getElementById('quiz-bar').style.width = `${((quizIdx+1)/quizQuestions.length)*100}%`;
+  document.getElementById('q-feedback').style.display = 'none';
+  document.getElementById('q-next-btn').style.display = 'none';
+
+  // 不正解の選択肢：同カテゴリ優先、足りなければ全単語から
+  const pool = quizCat === '__review__'
+    ? Object.values(WORDS).flat()
+    : WORDS[quizCat];
+  const wrong = shuffle(pool.filter(w => w.meaning !== q.meaning)).slice(0,3);
+  const opts = shuffle([q, ...wrong]);
+  const grid = document.getElementById('q-options');
+  grid.innerHTML = opts.map(o => `
+    <button class="option-btn" onclick="answerQuiz(this,'${escape(o.meaning)}','${escape(q.meaning)}')">${o.meaning}</button>
+  `).join('');
+}
+
+function escape(s) { return s.replace(/'/g,"&#39;"); }
+
+function answerQuiz(btn, chosen, correct) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach(b => {
+    b.disabled = true;
+    const dec = decodeHtml(b.textContent);
+    if (dec === decodeHtml(correct)) b.classList.add('correct');
+  });
+  const fb = document.getElementById('q-feedback');
+  const q = quizQuestions[quizIdx];
+  if (decodeHtml(chosen) === decodeHtml(correct)) {
+    quizCorrect++;
+    btn.classList.add('correct');
+    fb.className = 'feedback correct';
+    fb.textContent = '⭕ 正解！';
+  } else {
+    quizWrong++;
+    btn.classList.add('wrong');
+    fb.className = 'feedback wrong';
+    fb.textContent = `❌ 不正解。正解は「${decodeHtml(correct)}」`;
+    // 間違えた単語を復習リストに自動追加
+    const cat = q._cat || quizCat;
+    bookmarks.add(bookmarkKey(cat, q));
+    saveBookmarks();
+    renderCats();
+  }
+  fb.style.display = 'block';
+  updateScore();
+
+  if (quizIdx + 1 >= quizQuestions.length) {
+    document.getElementById('q-next-btn').textContent = '結果を見る';
+  } else {
+    document.getElementById('q-next-btn').textContent = '次の問題へ';
+  }
+  document.getElementById('q-next-btn').style.display = 'block';
+}
+
+function decodeHtml(s) {
+  const t = document.createElement('textarea');
+  t.innerHTML = s;
+  return t.value;
+}
+
+function nextQuestion() {
+  quizIdx++;
+  if (quizIdx >= quizQuestions.length) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+function updateScore() {
+  document.getElementById('q-correct').textContent = quizCorrect;
+  document.getElementById('q-wrong').textContent = quizWrong;
+  document.getElementById('q-total').textContent = quizQuestions.length;
+}
+
+function showResult() {
+  document.getElementById('quiz-area').style.display = 'none';
+  document.getElementById('quiz-result').style.display = 'block';
+  const pct = Math.round(quizCorrect / quizQuestions.length * 100);
+  document.getElementById('res-score').textContent = `${quizCorrect} / ${quizQuestions.length}（${pct}%）`;
+  let emoji, msg;
+  if (pct === 100) { emoji='🏆'; msg='完璧！素晴らしい！'; }
+  else if (pct >= 80) { emoji='🎉'; msg='よくできました！'; }
+  else if (pct >= 60) { emoji='😊'; msg='もう少し！引き続き頑張ろう！'; }
+  else { emoji='📚'; msg='復習してみよう！フラッシュカードも使ってね。'; }
+  document.getElementById('res-emoji').textContent = emoji;
+  document.getElementById('res-msg').textContent = msg;
+}
+
+function resetQuiz() {
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-start-area').style.display = 'block';
+  quizCorrect = 0; quizWrong = 0;
+  document.getElementById('q-correct').textContent = 0;
+  document.getElementById('q-wrong').textContent = 0;
+  document.getElementById('q-total').textContent = 0;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Speech
+let currentAudio = null;
+let thaiVoice = null;
+
+function loadVoices() {
+  const voices = speechSynthesis.getVoices();
+  thaiVoice = voices.find(v => v.lang === 'th-TH') || voices.find(v => v.lang.startsWith('th')) || null;
+}
+loadVoices();
+if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function speakThai(text, btnId) {
+  const btn = document.getElementById(btnId);
+
+  // 再生中なら止める
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+  document.querySelectorAll('.speak-btn').forEach(b => b.classList.remove('speaking'));
+
+  if (btn) btn.classList.add('speaking');
+
+  // Web Speech API（スマホ内蔵音声）を優先
+  if (typeof speechSynthesis !== 'undefined') {
+    loadVoices();
+    if (thaiVoice) {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.voice = thaiVoice;
+      utt.lang = 'th-TH';
+      utt.rate = 0.85;
+      utt.onend = () => { if (btn) btn.classList.remove('speaking'); };
+      utt.onerror = () => { if (btn) btn.classList.remove('speaking'); tryGoogleTTS(text, btn); };
+      speechSynthesis.speak(utt);
+      return;
+    }
+  }
+
+  // タイ語音声がなければ Google TTS にフォールバック
+  tryGoogleTTS(text, btn);
+}
+
+function tryGoogleTTS(text, btn) {
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=th&client=tw-ob`;
+  const audio = new Audio(url);
+  currentAudio = audio;
+  audio.onended = () => { if (btn) btn.classList.remove('speaking'); currentAudio = null; };
+  audio.onerror = () => {
+    if (btn) btn.classList.remove('speaking');
+    currentAudio = null;
+    // 最終フォールバック：lang指定のみで試みる
+    if (typeof speechSynthesis !== 'undefined') {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'th-TH';
+      utt.rate = 0.85;
+      utt.onend = () => { if (btn) btn.classList.remove('speaking'); };
+      utt.onerror = () => {
+        if (btn) btn.classList.remove('speaking');
+        showVoiceError(btn);
+      };
+      speechSynthesis.speak(utt);
+    } else {
+      showVoiceError(btn);
+    }
+  };
+  audio.play().catch(() => {
+    currentAudio = null;
+    if (btn) btn.classList.remove('speaking');
+    showVoiceError(btn);
+  });
+}
+
+function showVoiceError(btn) {
+  if (!btn) return;
+  const msg = document.createElement('div');
+  msg.className = 'no-voice-msg';
+  msg.textContent = '音声を再生できませんでした';
+  btn.insertAdjacentElement('afterend', msg);
+  setTimeout(() => msg.remove(), 3000);
+}
+
+// Init
+shuffleFlash();
+renderCats();
+renderCard();
+</script>
+</body>
+</html>
