@@ -296,6 +296,155 @@
     margin-bottom: 10px;
     text-transform: uppercase;
   }
+
+  /* タイマーチップ */
+  .timer-chip {
+    margin-left: auto;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+    background: rgba(255,255,255,0.2);
+    padding: 3px 10px;
+  }
+
+  /* ホーム画面 */
+  .home-stat-block {
+    border: 1px solid var(--gray-mid);
+    padding: 16px;
+    margin-bottom: 12px;
+    background: var(--white);
+  }
+  .home-stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .home-stat-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    color: var(--gray-dark);
+    text-transform: uppercase;
+    flex: 1;
+  }
+  .home-stat-value {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: var(--black);
+  }
+  .home-goal-label {
+    font-size: 0.75rem;
+    color: var(--gray-dark);
+  }
+  .home-time-display {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--black);
+    margin: 6px 0 4px;
+  }
+  .home-streak-display {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--red);
+  }
+  .goal-btn-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .goal-btn {
+    padding: 12px 4px;
+    border: 1px solid var(--gray-mid);
+    background: var(--white);
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--black);
+  }
+  .goal-btn.selected {
+    background: var(--black);
+    color: var(--white);
+    border-color: var(--black);
+  }
+  .goal-btn:hover:not(.selected) { border-color: var(--black); }
+  .home-learned-nums {
+    font-size: 1rem;
+    font-weight: bold;
+  }
+  .goal-achieved {
+    display: inline-block;
+    background: var(--red);
+    color: var(--white);
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* スマホ向けボタン大型化 */
+  .btn-known, .btn-unknown {
+    min-height: 52px;
+    font-size: 1rem;
+  }
+  .card-controls button {
+    min-height: 48px;
+    padding: 12px 28px;
+  }
+  .option-btn {
+    min-height: 56px;
+  }
+
+  /* 判定ボタン：カード裏返し後のみ表示 */
+  .judge-controls {
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+  /* 復習リスト画面 */
+  .review-list-empty {
+    text-align: center; padding: 48px 20px;
+    color: var(--gray-dark); font-size: 0.9rem;
+  }
+  .review-word-item {
+    display: flex; align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gray-light);
+    gap: 12px;
+  }
+  .review-word-item:first-child { border-top: 1px solid var(--gray-light); }
+  .review-word-thai { font-size: 1.4rem; min-width: 80px; }
+  .review-word-info { flex: 1; }
+  .review-word-meaning { font-size: 0.9rem; font-weight: bold; }
+  .review-word-kana { font-size: 0.75rem; color: var(--red); }
+  .review-word-cat { font-size: 0.7rem; color: var(--gray-dark); margin-top: 2px; }
+  .btn-remove-bookmark {
+    background: none; border: 1px solid var(--gray-mid);
+    padding: 6px 10px; font-size: 0.75rem; cursor: pointer;
+    color: var(--gray-dark); white-space: nowrap;
+  }
+  .btn-remove-bookmark:hover { border-color: var(--red); color: var(--red); }
+  .review-actions {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .btn-review-start {
+    flex: 1; padding: 13px; border: none;
+    background: var(--black); color: var(--white);
+    font-size: 0.9rem; font-weight: bold; cursor: pointer;
+    letter-spacing: 0.05em;
+  }
+  .btn-review-clear {
+    padding: 13px 20px; border: 1px solid var(--red);
+    background: var(--white); color: var(--red);
+    font-size: 0.9rem; font-weight: bold; cursor: pointer;
+  }
+  .review-count-line {
+    font-size: 0.8rem; color: var(--gray-dark);
+    margin-bottom: 12px;
+  }
 </style>
 </head>
 <body>
@@ -303,12 +452,62 @@
 <header>
   <span>🇹🇭</span>
   <h1>タイ語学習アプリ</h1>
+  <div class="timer-chip" id="timer-chip" style="display:none">⏱ 0:00</div>
 </header>
 
 <nav>
-  <button class="active" onclick="showScreen('flash')">📇 フラッシュカード</button>
+  <button onclick="showScreen('home')">🏠 ホーム</button>
+  <button class="active" onclick="showScreen('flash')">📇 カード</button>
   <button onclick="showScreen('quiz')">📝 クイズ</button>
+  <button onclick="showScreen('review')">📌 復習<span id="nav-review-badge" class="review-badge" style="display:none"></span></button>
 </nav>
+
+<!-- HOME SCREEN -->
+<div id="home" class="screen">
+  <section><h2>今日の学習</h2></section>
+
+  <div class="home-stat-block">
+    <div class="home-stat-row">
+      <span class="home-stat-label">⏱ 学習時間</span>
+      <span class="home-goal-label" id="home-goal">目標 10分</span>
+    </div>
+    <div class="home-time-display" id="home-timer">0分0秒 <span id="home-goal-achieved"></span></div>
+    <div class="progress-bar-wrap" style="margin:8px 0 4px">
+      <div class="progress-bar" id="home-time-bar" style="width:0%;background:var(--red)"></div>
+    </div>
+    <div style="text-align:right;font-size:0.75rem;color:var(--gray-dark)"><span id="home-time-pct">0</span>%</div>
+  </div>
+
+  <div class="home-stat-block">
+    <div class="home-stat-row">
+      <span class="home-stat-label">🔥 連続学習</span>
+    </div>
+    <div class="home-streak-display"><span id="home-streak">0</span>日</div>
+  </div>
+
+  <div class="home-stat-block">
+    <div class="home-stat-row">
+      <span class="home-stat-label">📚 覚えた単語</span>
+      <span class="home-learned-nums"><span id="home-learned">0</span> / <span id="home-total">0</span>語</span>
+    </div>
+    <div class="progress-bar-wrap" style="margin:8px 0 4px">
+      <div class="progress-bar" id="home-learned-bar" style="width:0%"></div>
+    </div>
+    <div style="text-align:right;font-size:0.75rem;color:var(--gray-dark)"><span id="home-learned-pct">0</span>%</div>
+  </div>
+
+  <div class="home-stat-block">
+    <div class="home-stat-label" style="margin-bottom:12px">🎯 1日の目標時間</div>
+    <div class="goal-btn-group">
+      <button id="goal-btn-5"  class="goal-btn" onclick="setDailyGoal(5)">5分</button>
+      <button id="goal-btn-10" class="goal-btn" onclick="setDailyGoal(10)">10分</button>
+      <button id="goal-btn-15" class="goal-btn" onclick="setDailyGoal(15)">15分</button>
+      <button id="goal-btn-30" class="goal-btn" onclick="setDailyGoal(30)">30分</button>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="goStudy()" style="margin-top:4px">📇 学習を始める →</button>
+</div>
 
 <!-- FLASHCARD SCREEN -->
 <div id="flash" class="screen active">
@@ -346,7 +545,7 @@
     </div>
   </div>
 
-  <div class="judge-controls" id="judge-controls">
+  <div class="judge-controls" id="judge-controls" style="display:none">
     <button class="btn-unknown" onclick="judgeCard(false)">✗ わからなかった</button>
     <button class="btn-known" onclick="judgeCard(true)">✓ わかった</button>
   </div>
@@ -414,6 +613,19 @@
       <button class="btn-retry" onclick="resetQuiz()">もう一度チャレンジ</button>
     </div>
   </div>
+</div>
+
+<!-- REVIEW SCREEN -->
+<div id="review" class="screen">
+  <section>
+    <h2>復習リスト</h2>
+  </section>
+  <div class="review-count-line" id="review-count-line"></div>
+  <div class="review-actions">
+    <button class="btn-review-start" onclick="startFromReview()">📇 このリストでフラッシュカード練習</button>
+    <button class="btn-review-clear" onclick="clearAllBookmarks()">全削除</button>
+  </div>
+  <div id="review-list-body"></div>
 </div>
 
 <script>
@@ -700,7 +912,10 @@ const CATEGORIES = Object.keys(WORDS);
 
 // 復習リスト: Set of "cat::thai" keys
 let bookmarks = new Set(JSON.parse(localStorage.getItem('thai_bookmarks') || '[]'));
-function saveBookmarks() { localStorage.setItem('thai_bookmarks', JSON.stringify([...bookmarks])); }
+function saveBookmarks() {
+  localStorage.setItem('thai_bookmarks', JSON.stringify([...bookmarks]));
+  updateNavBadge();
+}
 function bookmarkKey(cat, word) { return cat + '::' + word.thai; }
 
 // State
@@ -758,7 +973,7 @@ function setFlashCatReview() {
   renderCats();
   if (flashReviewList.length === 0) {
     document.getElementById('flash-result').style.display = 'none';
-    document.getElementById('judge-controls').style.display = 'flex';
+    document.getElementById('judge-controls').style.display = 'none';
     document.getElementById('flash-card').style.display = 'block';
     document.querySelector('.card-controls').style.display = 'flex';
     alert('復習リストが空です。カードの 🔖 ボタンか、クイズで間違えると自動追加されます。');
@@ -779,7 +994,7 @@ function setFlashCat(c) {
   flashFlipped = false;
   renderCats();
   document.getElementById('flash-result').style.display = 'none';
-  document.getElementById('judge-controls').style.display = 'flex';
+  document.getElementById('judge-controls').style.display = 'none';
   document.getElementById('flash-card').style.display = 'block';
   document.querySelector('.card-controls').style.display = 'flex';
   renderCard();
@@ -806,6 +1021,7 @@ function renderCard() {
   document.getElementById('flash-progress').textContent = `${flashIdx+1} / ${total}`;
   document.getElementById('flash-bar').style.width = `${((flashIdx+1)/total)*100}%`;
   document.getElementById('flash-card').classList.remove('flipped');
+  document.getElementById('judge-controls').style.display = 'none';
   flashFlipped = false;
 
   // ブックマークボタン状態
@@ -818,10 +1034,17 @@ function renderCard() {
 function flipCard() {
   flashFlipped = !flashFlipped;
   document.getElementById('flash-card').classList.toggle('flipped', flashFlipped);
+  document.getElementById('judge-controls').style.display = flashFlipped ? 'flex' : 'none';
 }
 
 function judgeCard(known) {
   flashKnown[flashIdx] = known;
+  // 覚えた単語を記録
+  if (known) {
+    const w = currentFlashWord();
+    learnedWords.add(w.thai);
+    saveLearnedWords();
+  }
   // 間違えたらブックマーク自動追加
   if (!known) {
     const w = currentFlashWord();
@@ -875,7 +1098,7 @@ function showFlashResult() {
 
 function retryFlash() {
   document.getElementById('flash-result').style.display = 'none';
-  document.getElementById('judge-controls').style.display = 'flex';
+  document.getElementById('judge-controls').style.display = 'none';
   document.getElementById('flash-card').style.display = 'block';
   document.querySelector('.card-controls').style.display = 'flex';
   if (flashReviewMode) {
@@ -888,7 +1111,7 @@ function retryFlash() {
 
 function startReviewMode() {
   document.getElementById('flash-result').style.display = 'none';
-  document.getElementById('judge-controls').style.display = 'flex';
+  document.getElementById('judge-controls').style.display = 'none';
   document.getElementById('flash-card').style.display = 'block';
   document.querySelector('.card-controls').style.display = 'flex';
   setFlashCatReview();
@@ -1049,6 +1272,80 @@ function showScreen(name) {
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById(name).classList.add('active');
   event.target.classList.add('active');
+  if (name === 'flash' || name === 'quiz') {
+    startStudyTimer();
+  } else {
+    pauseStudyTimer();
+  }
+  if (name === 'review') renderReviewList();
+  if (name === 'home') renderHome();
+}
+
+function renderReviewList() {
+  const body = document.getElementById('review-list-body');
+  const countLine = document.getElementById('review-count-line');
+  if (bookmarks.size === 0) {
+    countLine.textContent = '';
+    body.innerHTML = '<div class="review-list-empty">復習リストは空です。<br>フラッシュカードで「わからなかった」を押すか、🔖 ボタンで追加されます。</div>';
+    return;
+  }
+  countLine.textContent = `${bookmarks.size}語が登録されています`;
+  const items = [];
+  for (const key of bookmarks) {
+    const [cat, thai] = key.split('::');
+    if (WORDS[cat]) {
+      const w = WORDS[cat].find(x => x.thai === thai);
+      if (w) items.push({ key, cat, w });
+    }
+  }
+  body.innerHTML = items.map(({ key, cat, w }) => `
+    <div class="review-word-item">
+      <div class="review-word-thai">${w.thai}</div>
+      <div class="review-word-info">
+        <div class="review-word-meaning">${w.meaning}</div>
+        <div class="review-word-kana">${w.kana}</div>
+        <div class="review-word-cat">${cat}</div>
+      </div>
+      <button class="btn-remove-bookmark" onclick="removeBookmark('${key.replace(/'/g,"&#39;")}')">削除</button>
+    </div>
+  `).join('');
+}
+
+function removeBookmark(key) {
+  bookmarks.delete(key);
+  saveBookmarks();
+  renderReviewList();
+  renderCats();
+  updateNavBadge();
+}
+
+function clearAllBookmarks() {
+  if (!confirm(`復習リスト（${bookmarks.size}語）をすべて削除しますか？`)) return;
+  bookmarks.clear();
+  saveBookmarks();
+  renderReviewList();
+  renderCats();
+  updateNavBadge();
+}
+
+function startFromReview() {
+  if (bookmarks.size === 0) { alert('復習リストが空です。'); return; }
+  // フラッシュカードタブへ移動して復習モード開始
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('flash').classList.add('active');
+  document.querySelector('nav button:first-child').classList.add('active');
+  setFlashCatReview();
+}
+
+function updateNavBadge() {
+  const badge = document.getElementById('nav-review-badge');
+  if (bookmarks.size > 0) {
+    badge.textContent = bookmarks.size;
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 // Speech
@@ -1132,10 +1429,129 @@ function showVoiceError(btn) {
   setTimeout(() => msg.remove(), 3000);
 }
 
+// ===== 学習時間トラッキング =====
+let studyTimer = null;
+let sessionElapsed = 0;
+let dailyGoalMinutes = parseInt(localStorage.getItem('thai_daily_goal') || '10');
+
+function startStudyTimer() {
+  if (studyTimer) return;
+  const chip = document.getElementById('timer-chip');
+  if (chip) chip.style.display = 'block';
+  studyTimer = setInterval(() => {
+    sessionElapsed++;
+    updateTimerChip();
+    if (sessionElapsed % 30 === 0) flushStudyTime();
+  }, 1000);
+}
+
+function pauseStudyTimer() {
+  if (!studyTimer) return;
+  clearInterval(studyTimer);
+  studyTimer = null;
+  flushStudyTime();
+  const chip = document.getElementById('timer-chip');
+  if (chip) chip.style.display = 'none';
+}
+
+function flushStudyTime() {
+  if (sessionElapsed === 0) return;
+  const today = todayStr();
+  const data = JSON.parse(localStorage.getItem('thai_study_time') || '{}');
+  data[today] = (data[today] || 0) + sessionElapsed;
+  const keys = Object.keys(data).sort();
+  while (keys.length > 60) delete data[keys.shift()];
+  localStorage.setItem('thai_study_time', JSON.stringify(data));
+  sessionElapsed = 0;
+}
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function getTodaySeconds() {
+  const data = JSON.parse(localStorage.getItem('thai_study_time') || '{}');
+  return (data[todayStr()] || 0) + sessionElapsed;
+}
+
+function getStreak() {
+  const data = JSON.parse(localStorage.getItem('thai_study_time') || '{}');
+  const today = todayStr();
+  let streak = 0;
+  let d = new Date();
+  // 今日まだ勉強していない場合は昨日から数える
+  if (!(data[today] || sessionElapsed > 0)) d = new Date(Date.now() - 86400000);
+  for (let i = 0; i < 365; i++) {
+    const key = d.toISOString().slice(0, 10);
+    if (data[key] > 0 || (key === today && sessionElapsed > 0)) {
+      streak++;
+      d = new Date(d.getTime() - 86400000);
+    } else break;
+  }
+  return streak;
+}
+
+function updateTimerChip() {
+  const total = getTodaySeconds();
+  const m = Math.floor(total / 60), s = total % 60;
+  const chip = document.getElementById('timer-chip');
+  if (chip) chip.textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
+}
+
+function setDailyGoal(mins) {
+  dailyGoalMinutes = mins;
+  localStorage.setItem('thai_daily_goal', String(mins));
+  renderHome();
+}
+
+// ===== 覚えた単語 =====
+let learnedWords = new Set(JSON.parse(localStorage.getItem('thai_learned') || '[]'));
+function saveLearnedWords() {
+  localStorage.setItem('thai_learned', JSON.stringify([...learnedWords]));
+}
+function getTotalWords() {
+  return Object.values(WORDS).reduce((s, a) => s + a.length, 0);
+}
+
+// ===== ホーム画面 =====
+function renderHome() {
+  const todaySecs = getTodaySeconds();
+  const goalSecs = dailyGoalMinutes * 60;
+  const pct = Math.min(100, Math.round(todaySecs / goalSecs * 100));
+  const m = Math.floor(todaySecs / 60), s = todaySecs % 60;
+  const learned = learnedWords.size;
+  const total = getTotalWords();
+  const lPct = total > 0 ? Math.round(learned / total * 100) : 0;
+
+  document.getElementById('home-timer').innerHTML =
+    `${m}分${s}秒 ${pct >= 100 ? '<span class="goal-achieved">🎉 達成！</span>' : ''}`;
+  document.getElementById('home-goal').textContent = `目標 ${dailyGoalMinutes}分`;
+  document.getElementById('home-time-bar').style.width = pct + '%';
+  document.getElementById('home-time-pct').textContent = pct;
+  document.getElementById('home-streak').textContent = getStreak();
+  document.getElementById('home-learned').textContent = learned;
+  document.getElementById('home-total').textContent = total;
+  document.getElementById('home-learned-bar').style.width = lPct + '%';
+  document.getElementById('home-learned-pct').textContent = lPct;
+
+  [5, 10, 15, 30].forEach(n => {
+    const b = document.getElementById(`goal-btn-${n}`);
+    if (b) b.classList.toggle('selected', n === dailyGoalMinutes);
+  });
+}
+
+function goStudy() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('flash').classList.add('active');
+  document.querySelector('nav button:nth-child(2)').classList.add('active');
+  startStudyTimer();
+}
+
 // Init
 shuffleFlash();
 renderCats();
 renderCard();
+updateNavBadge();
+renderHome();
 </script>
 </body>
 </html>
