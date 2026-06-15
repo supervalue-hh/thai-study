@@ -1628,61 +1628,53 @@ if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !=
 
 function speakThai(text, btnId) {
   const btn = document.getElementById(btnId);
-
-  // 再生中なら止める
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
   document.querySelectorAll('.speak-btn').forEach(b => b.classList.remove('speaking'));
-
   if (btn) btn.classList.add('speaking');
 
-  // Web Speech API（スマホ内蔵音声）を優先
+  // 1. Web Speech API（タイ語音声がインストールされている場合）
   if (typeof speechSynthesis !== 'undefined') {
     loadVoices();
     if (thaiVoice) {
       const utt = new SpeechSynthesisUtterance(text);
-      utt.voice = thaiVoice;
-      utt.lang = 'th-TH';
-      utt.rate = 0.85;
+      utt.voice = thaiVoice; utt.lang = 'th-TH'; utt.rate = 0.85;
       utt.onend = () => { if (btn) btn.classList.remove('speaking'); };
-      utt.onerror = () => { if (btn) btn.classList.remove('speaking'); tryGoogleTTS(text, btn); };
+      utt.onerror = () => { if (btn) btn.classList.remove('speaking'); tryTTSFallbacks(text, btn, 0); };
       speechSynthesis.speak(utt);
       return;
     }
   }
-
-  // タイ語音声がなければ Google TTS にフォールバック
-  tryGoogleTTS(text, btn);
+  tryTTSFallbacks(text, btn, 0);
 }
 
-function tryGoogleTTS(text, btn) {
-  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=th&client=tw-ob`;
-  const audio = new Audio(url);
-  currentAudio = audio;
-  audio.onended = () => { if (btn) btn.classList.remove('speaking'); currentAudio = null; };
-  audio.onerror = () => {
-    if (btn) btn.classList.remove('speaking');
-    currentAudio = null;
-    // 最終フォールバック：lang指定のみで試みる
+// 複数のTTSサービスを順番に試す
+const TTS_URLS = [
+  t => `https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(t)}&tl=th&client=gtx`,
+  t => `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(t)}&tl=th&client=gtx`,
+  t => `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(t)}&tl=th&client=tw-ob`,
+];
+
+function tryTTSFallbacks(text, btn, idx) {
+  if (idx >= TTS_URLS.length) {
+    // 最終手段：タイ語指定のみでWeb Speech API
     if (typeof speechSynthesis !== 'undefined') {
       const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = 'th-TH';
-      utt.rate = 0.85;
+      utt.lang = 'th-TH'; utt.rate = 0.85;
       utt.onend = () => { if (btn) btn.classList.remove('speaking'); };
-      utt.onerror = () => {
-        if (btn) btn.classList.remove('speaking');
-        showVoiceError(btn);
-      };
+      utt.onerror = () => { if (btn) btn.classList.remove('speaking'); showVoiceError(btn); };
       speechSynthesis.speak(utt);
     } else {
+      if (btn) btn.classList.remove('speaking');
       showVoiceError(btn);
     }
-  };
-  audio.play().catch(() => {
-    currentAudio = null;
-    if (btn) btn.classList.remove('speaking');
-    showVoiceError(btn);
-  });
+    return;
+  }
+  const audio = new Audio(TTS_URLS[idx](text));
+  currentAudio = audio;
+  audio.onended = () => { if (btn) btn.classList.remove('speaking'); currentAudio = null; };
+  audio.onerror = () => { currentAudio = null; tryTTSFallbacks(text, btn, idx + 1); };
+  audio.play().catch(() => { currentAudio = null; tryTTSFallbacks(text, btn, idx + 1); });
 }
 
 function showVoiceError(btn) {
