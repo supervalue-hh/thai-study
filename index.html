@@ -575,7 +575,10 @@
     <h1 style="font-size:0.95rem;font-weight:900;letter-spacing:0.08em;line-height:1.3;">OIC GROUP LANGUAGE<br>LEARNING APP</h1>
     <div style="font-size:0.62rem;letter-spacing:0.15em;opacity:0.85;margin-top:2px;">THAI ｜ PRESENTED BY HAMANO</div>
   </div>
-  <div class="timer-chip" id="timer-chip">⏱ 0:00</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+    <button id="gender-btn" onclick="toggleGender()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:var(--white);border-radius:20px;padding:4px 12px;font-size:0.72rem;font-weight:bold;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;" title="話者の性別を切り替え">♂ 男性</button>
+    <div class="timer-chip" id="timer-chip">⏱ 0:00</div>
+  </div>
 </header>
 
 <nav>
@@ -1327,6 +1330,41 @@ function saveBookmarks() {
 function bookmarkKey(cat, word) { return cat + '::' + word.thai; }
 
 // State
+// 話者性別モード（'male' or 'female'）
+let genderMode = localStorage.getItem('thai_gender') || 'male';
+function applyGender(text, isRoman) {
+  if (genderMode === 'male') return text;
+  if (isRoman) {
+    return text
+      .replace(/クラップ/g, 'カ')
+      .replace(/ポム/g, 'チャン');
+  } else {
+    return text
+      .replace(/ครับ/g, 'ค่ะ')
+      .replace(/คับ/g, 'คะ')
+      .replace(/ผม/g, 'ฉัน');
+  }
+}
+function toggleGender() {
+  genderMode = genderMode === 'male' ? 'female' : 'male';
+  localStorage.setItem('thai_gender', genderMode);
+  updateGenderBtn();
+  renderCard();
+}
+function updateGenderBtn() {
+  const btn = document.getElementById('gender-btn');
+  if (!btn) return;
+  if (genderMode === 'female') {
+    btn.textContent = '♀ 女性';
+    btn.style.background = 'rgba(255,200,220,0.35)';
+    btn.style.borderColor = 'rgba(255,200,220,0.8)';
+  } else {
+    btn.textContent = '♂ 男性';
+    btn.style.background = 'rgba(255,255,255,0.2)';
+    btn.style.borderColor = 'rgba(255,255,255,0.5)';
+  }
+}
+
 let flashCat = CATEGORIES[0];
 let flashIdx = 0;
 let flashFlipped = false;
@@ -1422,8 +1460,8 @@ function renderCard() {
   document.getElementById('card-kana').textContent = w.kana;
   document.getElementById('card-roman').textContent = w.roman;
   document.getElementById('card-meaning').textContent = w.meaning;
-  document.getElementById('card-example').textContent = w.ex || '';
-  document.getElementById('card-example-roman').textContent = w.exRoman || '';
+  document.getElementById('card-example').textContent = applyGender(w.ex || '', false);
+  document.getElementById('card-example-roman').textContent = applyGender(w.exRoman || '', true);
   document.getElementById('card-example-block').style.display = w.ex ? 'block' : 'none';
   const total = flashReviewMode ? flashReviewList.length : WORDS[flashCat].length;
   document.getElementById('flash-progress').textContent = `${flashIdx+1} / ${total}`;
@@ -2420,6 +2458,7 @@ function goStudy() {
 }
 
 // Init
+updateGenderBtn();
 shuffleFlash();
 renderCats();
 renderCard();
